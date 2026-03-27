@@ -106,11 +106,11 @@ export async function GET() {
         date,
         unlocks,
       })),
-      planDistribution: planDistribution.map((row) => ({
+      planDistribution: planDistribution.map((row: { plan: string; _count: { _all: number } }) => ({
         plan: row.plan,
         users: row._count._all,
       })),
-      subscriptionStatus: statusDistribution.map((row) => ({
+      subscriptionStatus: statusDistribution.map((row: { status: string; _count: { _all: number } }) => ({
         status: row.status,
         total: row._count._all,
       })),
