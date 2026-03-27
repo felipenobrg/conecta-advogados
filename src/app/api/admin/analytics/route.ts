@@ -3,7 +3,9 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { planCatalog } from "@/lib/payment/plans";
 
-const planPriceMap = new Map(planCatalog.map((entry) => [entry.id, entry.amountInCents]));
+const planPriceMap: Map<string, number> = new Map(
+  planCatalog.map((entry) => [entry.id, entry.amountInCents])
+);
 
 function formatDay(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -71,7 +73,7 @@ export async function GET() {
     }),
   ]);
 
-  const estimatedMonthlyRevenueInCents = subscriptions.reduce((sum, row) => {
+  const estimatedMonthlyRevenueInCents = subscriptions.reduce((sum: number, row: { status: string; plan: string }) => {
     if (row.status !== "ACTIVE") return sum;
     return sum + (planPriceMap.get(row.plan) ?? 0);
   }, 0);
