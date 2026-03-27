@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String        @id @default(uuid())
+  email            String        @unique
+  name             String
+  phone            String
+  whatsappVerified Boolean       @default(false)
+  role             Role          @default(CLIENT)
+  plan             Plan          @default(START)
+  planExpiresAt    DateTime?
+  createdAt        DateTime      @default(now())
+  clientLeads      Lead[]        @relation("ClientLeads")
+  leads            LeadUnlock[]
+  subscription     Subscription?
+}
+
+model Lead {
+  id               String       @id @default(uuid())
+  clientId         String?
+  name             String
+  email            String
+  phone            String
+  whatsappVerified Boolean      @default(false)
+  area             String
+  state            String
+  status           LeadStatus   @default(PENDING)
+  statusUpdatedAt  DateTime?
+  statusUpdatedBy  Role?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  client           User?        @relation("ClientLeads", fields: [clientId], references: [id])
+  unlocks          LeadUnlock[]
+
+  @@index([clientId])
+}
+
+model LeadUnlock {
+  id         String   @id @default(uuid())
+  leadId     String
+  userId     String
+  unlockedAt DateTime @default(now())
+  lead       Lead     @relation(fields: [leadId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([leadId, userId])
+  @@index([leadId])
+  @@index([userId])
+}
+
+model Subscription {
+  id         String    @id @default(uuid())
+  userId     String    @unique
+  provider   String
+  providerId String
+  status     SubStatus
+  plan       Plan
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  CLIENT
+  LAWYER
+  ADMIN
+}
+
+enum Plan {
+  START
+  PRO
+  PRIMUM
+}
+
+enum LeadStatus {
+  PENDING
+  CONTACTED
+  CONVERTED
+  LOST
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+}

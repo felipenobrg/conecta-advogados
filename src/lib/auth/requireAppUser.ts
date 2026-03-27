@@ -1,0 +1,85 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db/prisma";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export type AppRole = "CLIENT" | "LAWYER" | "ADMIN";
+
+export type RequireAppUserResult =
+  | {
+      ok: true;
+      user: {
+        id: string;
+        email: string;
+        name: string;
+        role: AppRole;
+      };
+    }
+  | {
+      ok: false;
+      response: NextResponse;
+    };
+
+export async function requireAppUser(allowedRoles?: AppRole[]): Promise<RequireAppUserResult> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error || !data.user?.email) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { success: false, message: "Sessao invalida." },
+          { status: 401 }
+        ),
+      };
+    }
+
+    const appUser = await prisma.user.findUnique({
+      where: { email: data.user.email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+
+    if (!appUser) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { success: false, message: "Usuario nao encontrado na base de aplicacao." },
+          { status: 404 }
+        ),
+      };
+    }
+
+    if (allowedRoles && !allowedRoles.includes(appUser.role)) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { success: false, message: "Acesso negado para este recurso." },
+          { status: 403 }
+        ),
+      };
+    }
+
+    return {
+      ok: true,
+      user: {
+        id: appUser.id,
+        email: appUser.email,
+        name: appUser.name,
+        role: appUser.role,
+      },
+    };
+  } catch {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, message: "Falha ao validar sessao." },
+        { status: 500 }
+      ),
+    };
+  }
+}

@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  --background: #1a0a2e;
+  --foreground: #ffffff;
+  --surface: #231540;
+  --surface-2: #2d1b4e;
+  --muted: #a89bc2;
+  --border: #3d2a5a;
+  --brand-orange: #e8472a;
+  --brand-orange-hover: #c73d22;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+@keyframes scarcity-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.scarcity-track {
+  animation: scarcity-scroll 34s linear infinite;
+  will-change: transform;
+}
+
+.scarcity-track:hover {
+  animation-play-state: paused;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+button,
+select,
+textarea {
+  font: inherit;
+}
