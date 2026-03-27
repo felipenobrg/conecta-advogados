@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { getPaymentProvider } from "@/lib/payment";
 
 const requestSchema = z.object({
   sessionId: z.string().min(10),
@@ -19,13 +20,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const payload = requestSchema.parse(body);
 
-    if (!payload.phoneVerified) {
-      return NextResponse.json(
-        { success: false, message: "WhatsApp precisa estar validado para concluir cadastro." },
-        { status: 400 }
-      );
-    }
-
     if (!payload.consentAccepted) {
       return NextResponse.json(
         { success: false, message: "Consentimento LGPD obrigatorio." },
@@ -42,6 +36,7 @@ export async function POST(request: Request) {
 
     const selectedPlan = payload.selectedPlan ?? "START";
     const needsPayment = payload.role === "LAWYER" && (selectedPlan === "PRO" || selectedPlan === "PRIMUM");
+    let checkoutUrl: string | null = null;
 
     const user = await prisma.user.upsert({
       where: { email: payload.email },
@@ -80,6 +75,17 @@ export async function POST(request: Request) {
             plan: selectedPlan,
           },
         });
+
+        const provider = getPaymentProvider();
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
+        const checkout = await provider.createCheckout({
+          userId: user.id,
+          planId: selectedPlan,
+          successUrl: `${appUrl}/dashboard?checkout=success`,
+          cancelUrl: `${appUrl}/onboarding?checkout=canceled`,
+          customerEmail: user.email,
+        });
+        checkoutUrl = checkout.url;
       } else {
         await prisma.subscription.upsert({
           where: { userId: user.id },
@@ -104,6 +110,7 @@ export async function POST(request: Request) {
       success: true,
       nextPath: payload.role === "LAWYER" ? "/dashboard" : "/client/dashboard",
       paymentPending: needsPayment,
+      checkoutUrl,
       sessionId: payload.sessionId,
       practiceAreasCount: payload.practiceAreas.length,
     });

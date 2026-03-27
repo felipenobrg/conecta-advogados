@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requirePlan } from "@/lib/auth/requirePlan";
 
 function monthLabel(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", { month: "short" })
@@ -25,29 +25,13 @@ function normalizeDateRange(from: string | null, to: string | null) {
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.auth.getUser();
-
-    if (error || !data.user?.email) {
-      return NextResponse.json(
-        { success: false, message: "Sessao invalida." },
-        { status: 401 }
-      );
-    }
-
-    const appUser = await prisma.user.findUnique({
-      where: { email: data.user.email },
-      select: {
-        id: true,
-        role: true,
-      },
+    const auth = await requirePlan(["PRIMUM"], {
+      allowedRoles: ["LAWYER", "ADMIN"],
+      message: "Dashboard premium disponivel apenas no plano Primum.",
     });
 
-    if (!appUser || (appUser.role !== "LAWYER" && appUser.role !== "ADMIN")) {
-      return NextResponse.json(
-        { success: false, message: "Acesso restrito ao dashboard." },
-        { status: 403 }
-      );
+    if (!auth.ok) {
+      return auth.response;
     }
 
     const { searchParams } = new URL(request.url);
@@ -65,12 +49,12 @@ export async function GET(request: Request) {
     ] = await Promise.all([
       prisma.leadUnlock.count({
         where: {
-          userId: appUser.id,
+          userId: auth.user.id,
         },
       }),
       prisma.leadUnlock.count({
         where: {
-          userId: appUser.id,
+          userId: auth.user.id,
           unlockedAt: {
             gte: start,
             lte: end,
@@ -79,7 +63,7 @@ export async function GET(request: Request) {
       }),
       prisma.leadUnlock.count({
         where: {
-          userId: appUser.id,
+          userId: auth.user.id,
           unlockedAt: {
             gte: start,
             lte: end,
@@ -91,7 +75,7 @@ export async function GET(request: Request) {
       }),
       prisma.leadUnlock.findMany({
         where: {
-          userId: appUser.id,
+          userId: auth.user.id,
           unlockedAt: {
             gte: start,
             lte: end,
@@ -115,7 +99,7 @@ export async function GET(request: Request) {
       }),
       prisma.leadUnlock.findMany({
         where: {
-          userId: appUser.id,
+          userId: auth.user.id,
         },
         orderBy: {
           unlockedAt: "asc",

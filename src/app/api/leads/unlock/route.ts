@@ -12,6 +12,25 @@ function hoursToMilliseconds(hours: number) {
   return hours * 60 * 60 * 1000;
 }
 
+function getUnlockMaxByPlan(plan: "START" | "PRO" | "PRIMUM", role: "CLIENT" | "LAWYER" | "ADMIN") {
+  if (role === "ADMIN") {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  if (plan === "START") {
+    const startLimit = Number(process.env.LEAD_UNLOCK_LIMIT_START ?? 8);
+    return Number.isFinite(startLimit) ? Math.max(0, Math.floor(startLimit)) : 8;
+  }
+
+  if (plan === "PRO") {
+    const proLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PRO ?? Number.POSITIVE_INFINITY);
+    return Number.isFinite(proLimit) ? Math.max(0, Math.floor(proLimit)) : Number.POSITIVE_INFINITY;
+  }
+
+  const primumLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PRIMUM ?? Number.POSITIVE_INFINITY);
+  return Number.isFinite(primumLimit) ? Math.max(0, Math.floor(primumLimit)) : Number.POSITIVE_INFINITY;
+}
+
 export async function POST(request: Request) {
   try {
     const auth = await requireAppUser(["LAWYER", "ADMIN"]);
@@ -22,7 +41,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { leadId, dryRun } = requestSchema.parse(body);
 
-    const unlockMax = Number(process.env.LEAD_UNLOCK_MAX ?? 3);
+    const unlockMax = getUnlockMaxByPlan(auth.user.plan, auth.user.role);
     const reopenHours = Number(process.env.LEAD_UNLOCK_REOPEN_HOURS ?? 48);
 
     const lead = await prisma.lead.findUnique({
@@ -64,11 +83,12 @@ export async function POST(request: Request) {
     const eligible = unlockCount < unlockMax || canReopenAfter48h;
 
     if (!eligible) {
+      const maxLabel = Number.isFinite(unlockMax) ? String(unlockMax) : "ilimitado";
       return NextResponse.json(
         {
           success: false,
           eligible: false,
-          reason: `Limite de ${unlockMax} desbloqueios atingido e janela adicional de ${reopenHours}h ainda indisponivel.`,
+          reason: `Limite de ${maxLabel} desbloqueios atingido e janela adicional de ${reopenHours}h ainda indisponivel.`,
           unlockCount,
         },
         { status: 409 }

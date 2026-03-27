@@ -30,5 +30,10 @@ export async function completeOnboarding(payload: CompleteOnboardingPayload) {
     throw new Error(message || "Nao foi possivel concluir o onboarding.");
   }
 
-  return response.json() as Promise<{ success: boolean; nextPath: string; paymentPending: boolean }>;
+  return response.json() as Promise<{
+    success: boolean;
+    nextPath: string;
+    paymentPending: boolean;
+    checkoutUrl: string | null;
+  }>;
 }

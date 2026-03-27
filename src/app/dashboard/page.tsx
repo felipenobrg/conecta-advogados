@@ -88,6 +88,7 @@ export default function DashboardPage() {
     const [leadsLoading, setLeadsLoading] = useState(true);
     const [leadsError, setLeadsError] = useState("");
     const [actionMessage, setActionMessage] = useState("");
+    const [billingMessage, setBillingMessage] = useState("");
     const [savingLeadId, setSavingLeadId] = useState<string | null>(null);
 
     const [area, setArea] = useState("");
@@ -212,6 +213,50 @@ export default function DashboardPage() {
         void loadLeads();
     }, [loadLeads]);
 
+    useEffect(() => {
+        const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
+
+        if (checkoutStatus === "canceled") {
+            setBillingMessage("Checkout cancelado. Voce pode tentar novamente quando quiser.");
+            return;
+        }
+
+        if (checkoutStatus !== "success") {
+            return;
+        }
+
+        const checkSubscription = async () => {
+            try {
+                const response = await fetch("/api/subscription/status", {
+                    cache: "no-store",
+                });
+
+                if (!response.ok) {
+                    throw new Error("Nao foi possivel validar assinatura.");
+                }
+
+                const json = (await response.json()) as {
+                    isActive: boolean;
+                    subscription: { status: string } | null;
+                };
+
+                if (json.isActive) {
+                    setBillingMessage("Pagamento confirmado! Sua assinatura foi ativada.");
+                    await loadDashboard();
+                    return;
+                }
+
+                setBillingMessage(
+                    `Pagamento recebido. Sincronizando status da assinatura (${json.subscription?.status ?? "pendente"}).`
+                );
+            } catch {
+                setBillingMessage("Nao foi possivel validar sua assinatura agora.");
+            }
+        };
+
+        void checkSubscription();
+    }, [loadDashboard]);
+
     return (
         <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)] pb-10 text-white">
             <MainHeader className="mb-1" />
@@ -253,6 +298,12 @@ export default function DashboardPage() {
                 {errorMessage && (
                     <p className="rounded-xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
                         {errorMessage}
+                    </p>
+                )}
+
+                {billingMessage && (
+                    <p className="rounded-xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                        {billingMessage}
                     </p>
                 )}
 

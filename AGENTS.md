@@ -116,7 +116,7 @@ export interface PaymentProvider {
 |--------|------------|-----------|--------------|
 | Start  | Único      | Definir   | 8 contatos   |
 | Pro    | Recorrente | Definir   | Ilimitado    |
-| Primum | Recorrente | Definir   | Ilimitado + Dashboard |
+| Premium | Recorrente | Definir   | Ilimitado + Dashboard |
 
 ---
 

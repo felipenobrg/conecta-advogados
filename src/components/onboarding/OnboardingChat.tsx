@@ -53,6 +53,7 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
 
     const [otpStatus, setOtpStatus] = useState<"idle" | "sent" | "verified">("idle");
     const [statusMessage, setStatusMessage] = useState<string>("");
+    const [nextPath, setNextPath] = useState<string>("/dashboard");
     const isLawyer = data.role === "LAWYER";
 
     const progress = (currentStep / totalSteps) * 100;
@@ -93,11 +94,11 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
         if (currentStep !== 7) return;
 
         const timer = setTimeout(() => {
-            router.push(data.role === "LAWYER" ? "/dashboard" : "/client/dashboard");
+            router.push(nextPath);
         }, 1600);
 
         return () => clearTimeout(timer);
-    }, [currentStep, data.role, router]);
+    }, [currentStep, nextPath, router]);
 
     async function saveAndContinue() {
         setStatusMessage("");
@@ -136,8 +137,15 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                     practiceAreas: data.practiceAreas,
                 });
 
+                setNextPath(response.nextPath);
+
                 if (response.paymentPending) {
+                    if (!response.checkoutUrl) {
+                        throw new Error("Nao foi possivel iniciar o checkout Stripe.");
+                    }
                     setStatusMessage("Conta criada! Assinatura pendente de ativação. Redirecionando...");
+                    window.location.assign(response.checkoutUrl);
+                    return;
                 } else {
                     setStatusMessage("Conta criada! Redirecionando...");
                 }
@@ -327,6 +335,10 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                             </button>
                         </div>
 
+                        <p className="text-xs text-[#a89bc2]">
+                            Validacao de WhatsApp esta opcional temporariamente. Voce pode continuar sem OTP.
+                        </p>
+
                         <label className="flex items-start gap-2 rounded-xl border border-[#3d2a5a]/70 bg-[#1a0a2e]/60 px-3 py-2 text-sm text-[#a89bc2]">
                             <input
                                 type="checkbox"
@@ -346,7 +358,6 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                                 !data.fullName ||
                                 !data.email ||
                                 !data.phone ||
-                                !data.phoneVerified ||
                                 !data.consentAccepted
                             }
                         >
