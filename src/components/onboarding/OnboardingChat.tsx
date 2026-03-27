@@ -12,9 +12,9 @@ const practiceAreaOptions = [
     "Direito Civil",
     "Trabalhista",
     "Criminal",
-    "Familia",
-    "Tributario",
-    "Previdenciario",
+    "Família",
+    "Tributário",
+    "Previdenciário",
     "Empresarial",
 ];
 
@@ -25,7 +25,7 @@ function StepMessage({ text }: { text: string }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
-            className="rounded-3xl rounded-tl-md border border-[#3d2a5a] bg-[#2d1b4e]/95 p-4 text-sm text-white shadow-xl"
+            className="rounded-3xl rounded-tl-md border border-[#3d2a5a] border-l-4 border-l-[#e8472a] bg-[#2d1b4e]/95 p-5 text-sm text-white shadow-[0_0_24px_rgba(232,71,42,0.14)]"
         >
             {text}
         </motion.div>
@@ -60,19 +60,19 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
     const stepText = useMemo(() => {
         switch (currentStep) {
             case 1:
-                return "Ola! Sou o assistente do Conecta Advogados. Vou te guiar em um onboarding rapido para liberar sua experiencia na plataforma.";
+                return "Olá! Sou o assistente do Conecta Advogados. Vou conduzir seu cadastro para ativar sua experiência na plataforma.";
             case 2:
-                return "Voce e um advogado buscando clientes ou um cliente buscando um advogado?";
+                return "Você atua como advogado ou está buscando um advogado?";
             case 3:
-                return "Excelente. Agora preciso dos seus dados e da verificacao de WhatsApp para proteger a comunidade.";
+                return "Perfeito. Agora precisamos validar seus dados e WhatsApp para garantir segurança na comunidade.";
             case 4:
                 return isLawyer
-                    ? "Escolha um plano para ativar sua conta profissional na fase beta."
-                    : "Qual area juridica descreve melhor seu caso neste momento?";
+                    ? "Escolha um plano para ativar sua conta profissional."
+                    : "Qual área jurídica descreve melhor seu caso neste momento?";
             case 5:
-                return "Quais areas de atuacao deseja receber leads?";
+                return "Quais áreas de atuação você deseja priorizar para receber leads?";
             case 6:
-                return "Revise os dados e confirme o cadastro para finalizar sua configuracao.";
+                return "Revise os dados e confirme o cadastro para finalizar sua configuração.";
             case 7:
             default:
                 return "Tudo certo! Criando sua conta...";
@@ -137,7 +137,7 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                 });
 
                 if (response.paymentPending) {
-                    setStatusMessage("Conta criada! Assinatura pendente de ativacao. Redirecionando...");
+                    setStatusMessage("Conta criada! Assinatura pendente de ativação. Redirecionando...");
                 } else {
                     setStatusMessage("Conta criada! Redirecionando...");
                 }
@@ -157,7 +157,7 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
 
     async function sendOtp() {
         if (!data.phone) {
-            setStatusMessage("Informe um WhatsApp valido antes de enviar o codigo.");
+            setStatusMessage("Informe um WhatsApp válido antes de enviar o código.");
             return;
         }
 
@@ -171,17 +171,17 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
 
         if (!response.ok) {
             const body = await response.json().catch(() => ({}));
-            setStatusMessage(body?.message ?? "Nao foi possivel enviar OTP.");
+            setStatusMessage(body?.message ?? "Não foi possível enviar OTP.");
             return;
         }
 
-        setStatusMessage("Codigo enviado para seu WhatsApp.");
+        setStatusMessage("Código enviado para seu WhatsApp.");
         setOtpStatus("sent");
     }
 
     async function verifyOtp() {
         if (data.otpCode.length < 4) {
-            setStatusMessage("Digite o codigo OTP recebido.");
+            setStatusMessage("Digite o código OTP recebido.");
             return;
         }
 
@@ -195,7 +195,7 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
 
         if (!response.ok) {
             const body = await response.json().catch(() => ({}));
-            setStatusMessage(body?.message ?? "OTP invalido.");
+            setStatusMessage(body?.message ?? "OTP inválido.");
             return;
         }
 
@@ -229,7 +229,7 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
             </div>
 
             <div className="mb-4 flex items-start gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-full border border-[#3d2a5a] bg-[#2d1b4e] text-xl text-white shadow-lg">
+                <div className="grid h-12 w-12 place-items-center rounded-full border border-[#3d2a5a] bg-[#2d1b4e] text-xl text-white shadow-[0_0_20px_rgba(232,71,42,0.15)]">
                     🤖
                 </div>
                 <div className="flex-1">
@@ -245,7 +245,7 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                         onClick={saveAndContinue}
                         disabled={isSubmitting}
                     >
-                        Vamos la!
+                        Vamos lá!
                     </button>
                 )}
 
@@ -255,8 +255,8 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                             type="button"
                             onClick={() => patchData({ role: "LAWYER" })}
                             className={`rounded-full border px-4 py-2 text-sm font-medium ${data.role === "LAWYER"
-                                    ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                    : "border-[#3d2a5a] text-[#a89bc2]"
+                                ? "border-[#e8472a] bg-[#e8472a] text-white"
+                                : "border-[#3d2a5a] text-[#a89bc2]"
                                 }`}
                         >
                             Sou Advogado
@@ -265,8 +265,8 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                             type="button"
                             onClick={() => patchData({ role: "CLIENT" })}
                             className={`rounded-full border px-4 py-2 text-sm font-medium ${data.role === "CLIENT"
-                                    ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                    : "border-[#3d2a5a] text-[#a89bc2]"
+                                ? "border-[#e8472a] bg-[#e8472a] text-white"
+                                : "border-[#3d2a5a] text-[#a89bc2]"
                                 }`}
                         >
                             Sou Cliente
@@ -288,52 +288,53 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                             placeholder="Nome completo"
                             value={data.fullName}
                             onChange={(event) => patchData({ fullName: event.target.value })}
-                            className="h-11 rounded-xl border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
+                            className="h-12 rounded-xl border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
                         />
                         <input
                             placeholder="Email"
                             type="email"
                             value={data.email}
                             onChange={(event) => patchData({ email: event.target.value })}
-                            className="h-11 rounded-xl border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
+                            className="h-12 rounded-xl border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
                         />
                         <input
                             placeholder="WhatsApp"
+                            type="tel"
                             value={data.phone}
                             onChange={(event) => patchData({ phone: event.target.value })}
-                            className="h-11 rounded-xl border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
+                            className="h-12 rounded-xl border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
                         />
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                             <button
                                 type="button"
                                 onClick={sendOtp}
-                                className="rounded-full border border-[#3d2a5a] px-4 py-2 text-sm font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e]"
+                                className="min-h-[44px] rounded-full border border-[#3d2a5a] px-4 py-2 text-sm font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e]"
                             >
                                 Enviar OTP
                             </button>
                             <input
-                                placeholder="Codigo"
+                                placeholder="Código"
                                 value={data.otpCode}
                                 onChange={(event) => patchData({ otpCode: event.target.value })}
-                                className="h-10 flex-1 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
+                                className="h-11 flex-1 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
                             />
                             <button
                                 type="button"
                                 onClick={verifyOtp}
-                                className="rounded-full bg-[#e8472a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#c73d22]"
+                                className="min-h-[44px] rounded-full bg-[#e8472a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#c73d22]"
                             >
                                 Validar
                             </button>
                         </div>
 
-                        <label className="flex items-start gap-2 text-xs text-[#a89bc2]">
+                        <label className="flex items-start gap-2 rounded-xl border border-[#3d2a5a]/70 bg-[#1a0a2e]/60 px-3 py-2 text-sm text-[#a89bc2]">
                             <input
                                 type="checkbox"
                                 checked={data.consentAccepted}
                                 onChange={(event) => patchData({ consentAccepted: event.target.checked })}
                                 className="mt-1"
                             />
-                            Concordo com os termos de uso e politica de privacidade (LGPD).
+                            Concordo com os termos de uso e política de privacidade (LGPD).
                         </label>
 
                         <button
@@ -368,10 +369,10 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                                                 type="button"
                                                 onClick={() => patchData({ selectedPlan: plan.id as PlanId })}
                                                 className={`rounded-2xl border p-3 text-left transition ${selected
-                                                        ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                                        : highlight
-                                                            ? "border-[#e8472a] bg-[#2d1b4e] text-white"
-                                                            : "border-[#3d2a5a] bg-[#1a0a2e] text-white"
+                                                    ? "border-[#e8472a] bg-[#e8472a] text-white"
+                                                    : highlight
+                                                        ? "border-[#e8472a] bg-[#2d1b4e] text-white"
+                                                        : "border-[#3d2a5a] bg-[#1a0a2e] text-white"
                                                     }`}
                                             >
                                                 <p className="text-sm font-semibold">{plan.name}</p>
@@ -407,8 +408,8 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                                                 type="button"
                                                 onClick={() => togglePracticeArea(area)}
                                                 className={`rounded-full border px-3 py-2 text-xs font-semibold ${selected
-                                                        ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                                        : "border-[#3d2a5a] text-[#a89bc2]"
+                                                    ? "border-[#e8472a] bg-[#e8472a] text-white"
+                                                    : "border-[#3d2a5a] text-[#a89bc2]"
                                                     }`}
                                             >
                                                 {area}
@@ -442,8 +443,8 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                                                 type="button"
                                                 onClick={() => togglePracticeArea(area)}
                                                 className={`rounded-full border px-3 py-2 text-xs font-semibold ${selected
-                                                        ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                                        : "border-[#3d2a5a] text-[#a89bc2]"
+                                                    ? "border-[#e8472a] bg-[#e8472a] text-white"
+                                                    : "border-[#3d2a5a] text-[#a89bc2]"
                                                     }`}
                                             >
                                                 {area}
@@ -490,7 +491,7 @@ export function OnboardingChat({ initialRole }: OnboardingChatProps) {
                             </p>
                         ) : null}
                         <p>
-                            <span className="font-semibold text-white">Areas:</span> {data.practiceAreas.length > 0 ? data.practiceAreas.join(", ") : "-"}
+                            <span className="font-semibold text-white">Áreas:</span> {data.practiceAreas.length > 0 ? data.practiceAreas.join(", ") : "-"}
                         </p>
                         <button
                             type="button"

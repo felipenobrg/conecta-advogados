@@ -124,7 +124,7 @@ export default function DashboardPage() {
             const json = await response.json();
             setPayload(json as DashboardPayload);
         } catch {
-            setErrorMessage("Nao foi possivel carregar os dados reais do dashboard.");
+            setErrorMessage("Não foi possível carregar os dados reais do dashboard.");
             setPayload(null);
         } finally {
             setLoading(false);
@@ -163,7 +163,7 @@ export default function DashboardPage() {
                 }, {})
             );
         } catch {
-            setLeadsError("Nao foi possivel carregar o CRM agora.");
+            setLeadsError("Não foi possível carregar o CRM agora.");
             setLeadsPayload(null);
         } finally {
             setLeadsLoading(false);
@@ -258,7 +258,7 @@ export default function DashboardPage() {
 
                 {loading && (
                     <p className="rounded-xl border border-sky-300/20 bg-sky-400/10 px-4 py-3 text-sm text-sky-200">
-                        Carregando metricas do dashboard...
+                        Carregando métricas do dashboard...
                     </p>
                 )}
 
@@ -279,9 +279,9 @@ export default function DashboardPage() {
                         </p>
                     </article>
                     <article className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
-                        <p className="text-xs text-zinc-300">Taxa de conversao</p>
+                        <p className="text-xs text-zinc-300">Taxa de conversão</p>
                         <div className="mt-3 flex items-center gap-3">
-                            <div className="h-14 w-14 rounded-full border-4 border-[#ff453a] border-l-white/20" />
+                            <div className="h-14 w-14 rounded-full border-4 border-[#e8472a] border-l-white/20" />
                             <p className="text-lg font-black text-white">{conversionRateText}%</p>
                         </div>
                     </article>
@@ -303,20 +303,20 @@ export default function DashboardPage() {
                                 <XAxis dataKey="month" stroke="#d4d4d8" />
                                 <YAxis stroke="#d4d4d8" />
                                 <Tooltip />
-                                <Line type="monotone" dataKey="leads" stroke="#ff453a" strokeWidth={3} dot={false} />
+                                <Line type="monotone" dataKey="leads" stroke="#e8472a" strokeWidth={3} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
                 </section>
 
                 <section className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
-                    <h2 className="text-sm font-semibold text-zinc-100">Historico de contatos</h2>
+                    <h2 className="text-sm font-semibold text-zinc-100">Histórico de contatos</h2>
                     <div className="mt-3 overflow-x-auto">
                         <table className="w-full min-w-135 text-left text-sm">
                             <thead>
                                 <tr className="text-zinc-300">
                                     <th className="pb-2">Lead</th>
-                                    <th className="pb-2">Area</th>
+                                    <th className="pb-2">Área</th>
                                     <th className="pb-2">Status</th>
                                     <th className="pb-2">Data</th>
                                 </tr>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
                                     setPage(1);
                                     setArea(event.target.value);
                                 }}
-                                placeholder="Area"
+                                placeholder="Área"
                                 className="h-10 rounded-full border border-white/20 bg-white/10 px-3 text-sm"
                             />
                             <input
@@ -463,7 +463,7 @@ export default function DashboardPage() {
                                                     type="button"
                                                     onClick={() => void saveLeadStatus(lead.id)}
                                                     disabled={savingLeadId === lead.id}
-                                                    className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#ff453a] px-3 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-50"
+                                                    className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#e8472a] px-3 text-xs font-semibold text-white transition hover:bg-[#c73d22] disabled:opacity-50"
                                                 >
                                                     <Save size={14} />
                                                     {savingLeadId === lead.id ? "Salvando" : "Salvar"}
@@ -484,7 +484,7 @@ export default function DashboardPage() {
 
                     <div className="mt-4 flex items-center justify-between text-sm text-zinc-300">
                         <p>
-                            Pagina {leadsPayload?.page ?? page} de {leadsPayload?.totalPages ?? 1} | Total: {leadsPayload?.total ?? 0}
+                            Página {leadsPayload?.page ?? page} de {leadsPayload?.totalPages ?? 1} | Total: {leadsPayload?.total ?? 0}
                         </p>
                         <div className="flex gap-2">
                             <button
@@ -506,7 +506,7 @@ export default function DashboardPage() {
                                 disabled={(leadsPayload?.page ?? page) >= (leadsPayload?.totalPages ?? 1)}
                                 className="h-9 rounded-full border border-white/20 bg-white/10 px-3 font-semibold disabled:opacity-40"
                             >
-                                Proxima
+                                Próxima
                             </button>
                         </div>
                     </div>

@@ -1,225 +1,239 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { MainHeader } from "@/components/navigation/MainHeader";
 
 type LeadStatus = "PENDING" | "CONTACTED" | "CONVERTED" | "LOST";
 
 type LeadRow = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  area: string;
-  state: string;
-  status: LeadStatus;
-  unlockCount: number;
-  createdAt: string;
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    area: string;
+    state: string;
+    status: LeadStatus;
+    unlockCount: number;
+    createdAt: string;
 };
 
 type LeadsPayload = {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-  leads: LeadRow[];
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    leads: LeadRow[];
 };
 
 const statusOptions: Array<{ label: string; value: "" | LeadStatus }> = [
-  { label: "Todos", value: "" },
-  { label: "Pendente", value: "PENDING" },
-  { label: "Contactado", value: "CONTACTED" },
-  { label: "Convertido", value: "CONVERTED" },
-  { label: "Perdido", value: "LOST" },
+    { label: "Todos", value: "" },
+    { label: "Pendente", value: "PENDING" },
+    { label: "Contactado", value: "CONTACTED" },
+    { label: "Convertido", value: "CONVERTED" },
+    { label: "Perdido", value: "LOST" },
 ];
 
 function formatDate(input: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(input));
+    return new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    }).format(new Date(input));
+}
+
+function statusBadgeClass(status: LeadStatus) {
+    if (status === "CONTACTED") return "border-sky-300/30 bg-sky-400/10 text-sky-200";
+    if (status === "CONVERTED") return "border-emerald-300/30 bg-emerald-400/10 text-emerald-200";
+    if (status === "LOST") return "border-rose-300/30 bg-rose-400/10 text-rose-200";
+    return "border-amber-300/30 bg-amber-400/10 text-amber-200";
 }
 
 export default function LeadsPage() {
-  const [payload, setPayload] = useState<LeadsPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+    const [payload, setPayload] = useState<LeadsPayload | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState("");
 
-  const [area, setArea] = useState("");
-  const [state, setState] = useState("");
-  const [status, setStatus] = useState<"" | LeadStatus>("");
-  const [page, setPage] = useState(1);
+    const [area, setArea] = useState("");
+    const [state, setState] = useState("");
+    const [status, setStatus] = useState<"" | LeadStatus>("");
+    const [page, setPage] = useState(1);
 
-  const loadLeads = useCallback(async () => {
-    setLoading(true);
-    setErrorMessage("");
+    const loadLeads = useCallback(async () => {
+        setLoading(true);
+        setErrorMessage("");
 
-    try {
-      const query = new URLSearchParams({
-        page: String(page),
-        pageSize: "10",
-      });
+        try {
+            const query = new URLSearchParams({
+                page: String(page),
+                pageSize: "10",
+            });
 
-      if (area.trim()) query.set("area", area.trim());
-      if (state.trim()) query.set("state", state.trim());
-      if (status) query.set("status", status);
+            if (area.trim()) query.set("area", area.trim());
+            if (state.trim()) query.set("state", state.trim());
+            if (status) query.set("status", status);
 
-      const response = await fetch(`/api/leads?${query.toString()}`, {
-        cache: "no-store",
-      });
+            const response = await fetch(`/api/leads?${query.toString()}`, {
+                cache: "no-store",
+            });
 
-      if (!response.ok) {
-        throw new Error("Falha ao carregar leads.");
-      }
+            if (!response.ok) {
+                throw new Error("Falha ao carregar leads.");
+            }
 
-      const json = await response.json();
-      setPayload(json as LeadsPayload);
-    } catch {
-      setErrorMessage("Nao foi possivel carregar os leads no momento.");
-      setPayload(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [area, state, status, page]);
+            const json = await response.json();
+            setPayload(json as LeadsPayload);
+        } catch {
+            setErrorMessage("Não foi possível carregar os leads no momento.");
+            setPayload(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [area, state, status, page]);
 
-  useEffect(() => {
-    void loadLeads();
-  }, [loadLeads]);
+    useEffect(() => {
+        void loadLeads();
+    }, [loadLeads]);
 
-  return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6">
-      <section className="mx-auto max-w-6xl space-y-4">
-        <header>
-          <h1 className="text-xl font-bold text-slate-900">Leads Recebidos</h1>
-          <p className="text-sm text-slate-600">
-            Visualize oportunidades com filtros por area, estado e status.
-          </p>
-        </header>
+    return (
+        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)] pb-10 text-white">
+            <MainHeader className="mb-2" />
 
-        <section className="rounded-2xl bg-white p-4 shadow-sm">
-          <div className="grid gap-2 md:grid-cols-4">
-            <input
-              value={area}
-              onChange={(event) => {
-                setPage(1);
-                setArea(event.target.value);
-              }}
-              placeholder="Area"
-              className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
-            />
-            <input
-              value={state}
-              onChange={(event) => {
-                setPage(1);
-                setState(event.target.value);
-              }}
-              placeholder="Estado (UF)"
-              className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
-            />
-            <select
-              value={status}
-              onChange={(event) => {
-                setPage(1);
-                setStatus(event.target.value as "" | LeadStatus);
-              }}
-              className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
-            >
-              {statusOptions.map((option) => (
-                <option key={option.label} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => {
-                setArea("");
-                setState("");
-                setStatus("");
-                setPage(1);
-              }}
-              className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-            >
-              Limpar filtros
-            </button>
-          </div>
+            <section className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6">
+                <header className="rounded-3xl border border-[#3d2a5a] bg-[#231540]/90 p-5 shadow-xl backdrop-blur">
+                    <h1 className="text-2xl font-black tracking-tight">Leads Recebidos</h1>
+                    <p className="mt-1 text-sm text-[#a89bc2]">
+                        Visualize oportunidades com filtros por área, estado e status.
+                    </p>
+                </header>
 
-          {errorMessage && (
-            <p className="mt-3 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {errorMessage}
-            </p>
-          )}
+                <section className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/90 p-4 shadow-sm backdrop-blur">
+                    <div className="grid gap-2 md:grid-cols-4">
+                        <input
+                            value={area}
+                            onChange={(event) => {
+                                setPage(1);
+                                setArea(event.target.value);
+                            }}
+                            placeholder="Área"
+                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
+                        />
+                        <input
+                            value={state}
+                            onChange={(event) => {
+                                setPage(1);
+                                setState(event.target.value);
+                            }}
+                            placeholder="Estado (UF)"
+                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
+                        />
+                        <select
+                            value={status}
+                            onChange={(event) => {
+                                setPage(1);
+                                setStatus(event.target.value as "" | LeadStatus);
+                            }}
+                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none focus:border-[#e8472a]"
+                        >
+                            {statusOptions.map((option) => (
+                                <option key={option.label} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setArea("");
+                                setState("");
+                                setStatus("");
+                                setPage(1);
+                            }}
+                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e]"
+                        >
+                            Limpar filtros
+                        </button>
+                    </div>
 
-          {loading && (
-            <p className="mt-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-700">
-              Carregando leads...
-            </p>
-          )}
+                    {errorMessage && (
+                        <p className="mt-3 rounded-xl border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
+                            {errorMessage}
+                        </p>
+                    )}
 
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-245 text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="pb-2">Lead</th>
-                  <th className="pb-2">Area</th>
-                  <th className="pb-2">Estado</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2">Desbloqueios</th>
-                  <th className="pb-2">Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(payload?.leads ?? []).map((lead) => (
-                  <tr key={lead.id} className="border-b border-slate-100 text-slate-700">
-                    <td className="py-2">
-                      <p className="font-semibold text-slate-900">{lead.name}</p>
-                      <p className="text-xs text-slate-500">{lead.email}</p>
-                    </td>
-                    <td className="py-2">{lead.area}</td>
-                    <td className="py-2">{lead.state}</td>
-                    <td className="py-2">{lead.status}</td>
-                    <td className="py-2">{lead.unlockCount}</td>
-                    <td className="py-2">{formatDate(lead.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    {loading && (
+                        <p className="mt-3 rounded-xl border border-sky-300/30 bg-sky-400/10 px-3 py-2 text-sm text-sky-200">
+                            Carregando leads...
+                        </p>
+                    )}
 
-          {!loading && (payload?.leads ?? []).length === 0 && (
-            <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              Nenhum lead encontrado para os filtros aplicados.
-            </p>
-          )}
+                    <div className="mt-3 overflow-x-auto">
+                        <table className="w-full min-w-245 text-left text-sm">
+                            <thead>
+                                <tr className="border-b border-white/15 text-[#a89bc2]">
+                                    <th className="pb-2">Lead</th>
+                                    <th className="pb-2">Área</th>
+                                    <th className="pb-2">Estado</th>
+                                    <th className="pb-2">Status</th>
+                                    <th className="pb-2">Desbloqueios</th>
+                                    <th className="pb-2">Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(payload?.leads ?? []).map((lead) => (
+                                    <tr key={lead.id} className="border-b border-white/10 text-zinc-100">
+                                        <td className="py-2">
+                                            <p className="font-semibold text-white">{lead.name}</p>
+                                            <p className="text-xs text-[#a89bc2]">{lead.email}</p>
+                                        </td>
+                                        <td className="py-2">{lead.area}</td>
+                                        <td className="py-2">{lead.state}</td>
+                                        <td className="py-2">
+                                            <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusBadgeClass(lead.status)}`}>
+                                                {lead.status}
+                                            </span>
+                                        </td>
+                                        <td className="py-2">{lead.unlockCount}</td>
+                                        <td className="py-2 text-[#a89bc2]">{formatDate(lead.createdAt)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
 
-          <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
-            <p>
-              Pagina {payload?.page ?? page} de {payload?.totalPages ?? 1} | Total: {payload?.total ?? 0}
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                disabled={(payload?.page ?? page) <= 1}
-                className="h-9 rounded-lg border border-slate-300 bg-white px-3 font-semibold text-slate-700 disabled:opacity-40"
-              >
-                Anterior
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage((current) => {
-                  const totalPages = payload?.totalPages ?? 1;
-                  return current >= totalPages ? current : current + 1;
-                })}
-                disabled={(payload?.page ?? page) >= (payload?.totalPages ?? 1)}
-                className="h-9 rounded-lg border border-slate-300 bg-white px-3 font-semibold text-slate-700 disabled:opacity-40"
-              >
-                Proxima
-              </button>
-            </div>
-          </div>
-        </section>
-      </section>
-    </main>
-  );
+                    {!loading && (payload?.leads ?? []).length === 0 && (
+                        <p className="mt-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-[#a89bc2]">
+                            Nenhum lead encontrado para os filtros aplicados.
+                        </p>
+                    )}
+
+                    <div className="mt-4 flex items-center justify-between text-sm text-[#a89bc2]">
+                        <p>
+                            Página {payload?.page ?? page} de {payload?.totalPages ?? 1} | Total: {payload?.total ?? 0}
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                                disabled={(payload?.page ?? page) <= 1}
+                                className="h-9 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 font-semibold text-[#a89bc2] disabled:opacity-40"
+                            >
+                                Anterior
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPage((current) => {
+                                    const totalPages = payload?.totalPages ?? 1;
+                                    return current >= totalPages ? current : current + 1;
+                                })}
+                                disabled={(payload?.page ?? page) >= (payload?.totalPages ?? 1)}
+                                className="h-9 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 font-semibold text-[#a89bc2] disabled:opacity-40"
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </main>
+    );
 }

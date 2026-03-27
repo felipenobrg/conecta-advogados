@@ -8,6 +8,11 @@ import { MainHeader } from "@/components/navigation/MainHeader";
 
 type AppRole = "LAWYER" | "CLIENT" | "ADMIN";
 
+type ResolveRoleResponse = {
+    success: boolean;
+    role?: AppRole;
+};
+
 function normalizeRole(role: unknown): AppRole {
     if (role === "LAWYER" || role === "ADMIN" || role === "CLIENT") {
         return role;
@@ -32,6 +37,32 @@ export default function AuthPage() {
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isMagicLoading, setIsMagicLoading] = useState(false);
+
+    const displayMessage = message;
+
+    function applyRoleAndRedirect(role: AppRole) {
+        setRoleCookie(role);
+        router.push(redirectPathForRole(role));
+    }
+
+    async function resolveRoleFromSession(): Promise<AppRole | null> {
+        const response = await fetch("/api/auth/resolve-role", {
+            method: "GET",
+            cache: "no-store",
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const json = (await response.json()) as ResolveRoleResponse;
+        if (!json.success || !json.role) {
+            return null;
+        }
+
+        return json.role;
+    }
 
     async function handleLogin() {
         setMessage("");
@@ -58,11 +89,49 @@ export default function AuthPage() {
             return;
         }
 
-        const resolvedRole = normalizeRole(
-            data.user?.user_metadata?.role ?? data.user?.app_metadata?.role
-        );
-        setRoleCookie(resolvedRole);
-        router.push(redirectPathForRole(resolvedRole));
+        const apiResolvedRole = await resolveRoleFromSession();
+        const resolvedRole =
+            apiResolvedRole ??
+            normalizeRole(data.user?.user_metadata?.role ?? data.user?.app_metadata?.role);
+
+        applyRoleAndRedirect(resolvedRole);
+    }
+
+    async function handleSendMagicLink() {
+        if (!email) {
+            setMessage("Informe um email valido para receber o magic link.");
+            return;
+        }
+
+        setMessage("");
+        setIsMagicLoading(true);
+
+        let supabase;
+        try {
+            supabase = createSupabaseBrowserClient();
+        } catch {
+            setIsMagicLoading(false);
+            setMessage("Supabase nao configurado neste ambiente.");
+            return;
+        }
+
+        const emailRedirectTo = `${window.location.origin}/auth/callback`;
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+                emailRedirectTo,
+                shouldCreateUser: false,
+            },
+        });
+
+        setIsMagicLoading(false);
+
+        if (error) {
+            setMessage(error.message);
+            return;
+        }
+
+        setMessage("Magic link enviado. Verifique seu email para concluir o acesso.");
     }
 
     async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -108,9 +177,18 @@ export default function AuthPage() {
                     >
                         {isLoading ? "Processando..." : "Entrar"}
                     </button>
+
+                    <button
+                        type="button"
+                        disabled={isMagicLoading}
+                        onClick={handleSendMagicLink}
+                        className="inline-flex h-12 w-full items-center justify-center rounded-full border border-white/30 bg-white/5 text-sm font-bold text-white transition hover:bg-white/15 disabled:opacity-50"
+                    >
+                        {isMagicLoading ? "Enviando link..." : "Entrar com Magic Link"}
+                    </button>
                 </form>
 
-                {message && <p className="mt-3 text-xs text-zinc-200">{message}</p>}
+                {displayMessage && <p className="mt-3 text-xs text-zinc-200">{displayMessage}</p>}
 
                 <div className="mt-5 space-y-2 text-xs text-zinc-300">
                     <Link href="/onboarding" className="block font-semibold text-zinc-100 hover:text-white">

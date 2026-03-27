@@ -8,7 +8,7 @@ declare global {
 
 function createPrismaClient() {
   if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL nao configurada.");
+    return null;
   }
 
   const pool = new Pool({
@@ -19,8 +19,19 @@ function createPrismaClient() {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = global.prisma ?? createPrismaClient();
+const prismaClient = global.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
+export const prisma =
+  prismaClient ??
+  (new Proxy(
+    {},
+    {
+      get() {
+        throw new Error("DATABASE_URL nao configurada.");
+      },
+    }
+  ) as PrismaClient);
+
+if (process.env.NODE_ENV !== "production" && prismaClient) {
+  global.prisma = prismaClient;
 }

@@ -14,8 +14,8 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         roleRaw === "LAWYER" || roleRaw === "CLIENT" ? roleRaw : undefined;
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#dbeafe_0%,#f8fafc_55%)]">
-            <MainHeader variant="light" />
+        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)]">
+            <MainHeader />
             <OnboardingChat initialRole={initialRole} />
         </main>
     );
