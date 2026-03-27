@@ -262,7 +262,15 @@ export default function Home() {
         <div className="rounded-3xl border border-[#3d2a5a] bg-[#231540]/80 px-5 py-6 shadow-xl backdrop-blur sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-black uppercase tracking-wide text-white">Conecta Advogados</p>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/brand/conecta-logo.svg"
+                  alt="Conecta Advogados"
+                  width={126}
+                  height={42}
+                  className="h-auto w-[126px]"
+                />
+              </div>
               <p className="mt-1 text-xs text-[#a89bc2]">
                 Plataforma para conexão entre clientes e advogados com foco em previsibilidade comercial e qualidade de atendimento.
               </p>
