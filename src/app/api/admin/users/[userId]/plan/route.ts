@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
@@ -21,7 +22,7 @@ export async function PATCH(
     const body = await request.json();
     const payload = payloadSchema.parse(body);
 
-    const result = await prisma.$transaction(async (transaction) => {
+    const result = await prisma.$transaction(async (transaction: Prisma.TransactionClient) => {
       const existing = await transaction.user.findUnique({
         where: { id: userId },
         select: {
