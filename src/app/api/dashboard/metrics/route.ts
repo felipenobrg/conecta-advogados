@@ -146,8 +146,11 @@ export async function GET(request: Request) {
       }
     }
 
-    const monthlyPerformance = Array.from(monthBuckets.entries()).map(([key, leads]) => {
-      const [year, month] = key.split("-").map(Number);
+    const monthlyPerformance = Array.from(monthBuckets.entries()).map(
+      ([key, leads]: [string, number]) => {
+      const [yearString, monthString] = key.split("-");
+      const year = Number(yearString);
+      const month = Number(monthString);
       const date = new Date(year, month, 1);
       return {
         month: monthLabel(date),
@@ -166,7 +169,7 @@ export async function GET(request: Request) {
         leadsUnlockedInRange: filteredUnlocks,
         conversionRate,
       },
-      history: recentUnlocks.map((entry) => ({
+      history: recentUnlocks.map((entry: (typeof recentUnlocks)[number]) => ({
         id: entry.id,
         lead: entry.lead.name,
         area: entry.lead.area,

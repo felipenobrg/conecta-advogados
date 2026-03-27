@@ -21,7 +21,7 @@ export async function PATCH(
     const body = await request.json();
     const payload = payloadSchema.parse(body);
 
-    const result = await prisma.$transaction(async (transaction: any) => {
+    const result = await prisma.$transaction(async (transaction) => {
       const existing = await transaction.user.findUnique({
         where: { id: userId },
         select: {

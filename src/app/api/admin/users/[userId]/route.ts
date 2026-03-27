@@ -3,7 +3,9 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { planCatalog } from "@/lib/payment/plans";
 
-const planPriceMap = new Map(planCatalog.map((entry) => [entry.id, entry.amountInCents]));
+const planPriceMap = new Map(
+  planCatalog.map((entry: (typeof planCatalog)[number]) => [entry.id, entry.amountInCents])
+);
 
 function toFinancialHistory(input: {
   status: string;
@@ -121,7 +123,7 @@ export async function GET(
       leadMetrics: {
         totalUnlocks: user._count.leads,
       },
-      leadHistory: user.leads.map((entry) => ({
+      leadHistory: user.leads.map((entry: (typeof user.leads)[number]) => ({
         unlockId: entry.id,
         unlockedAt: entry.unlockedAt,
         leadId: entry.lead.id,

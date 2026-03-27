@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     success: true,
     admin: auth.adminUser,
     total,
-    users: users.map((user) => ({
+    users: users.map((user: (typeof users)[number]) => ({
       id: user.id,
       name: user.name,
       email: user.email,

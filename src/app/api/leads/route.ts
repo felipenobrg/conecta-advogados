@@ -112,7 +112,7 @@ export async function GET(request: Request) {
       pageSize,
       total,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
-      leads: leads.map((lead) => ({
+      leads: leads.map((lead: (typeof leads)[number]) => ({
         id: lead.id,
         name: lead.name,
         email: lead.email,
