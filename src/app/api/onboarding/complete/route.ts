@@ -102,7 +102,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      nextPath: payload.role === "LAWYER" ? "/dashboard" : "/",
+      nextPath: payload.role === "LAWYER" ? "/dashboard" : "/client/dashboard",
       paymentPending: needsPayment,
       sessionId: payload.sessionId,
       practiceAreasCount: payload.practiceAreas.length,

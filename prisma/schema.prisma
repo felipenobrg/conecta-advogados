@@ -21,12 +21,14 @@ model User {
   plan             Plan          @default(START)
   planExpiresAt    DateTime?
   createdAt        DateTime      @default(now())
+  clientLeads      Lead[]        @relation("ClientLeads")
   leads            LeadUnlock[]
   subscription     Subscription?
 }
 
 model Lead {
   id               String       @id @default(uuid())
+  clientId         String?
   name             String
   email            String
   phone            String
@@ -34,8 +36,14 @@ model Lead {
   area             String
   state            String
   status           LeadStatus   @default(PENDING)
+  statusUpdatedAt  DateTime?
+  statusUpdatedBy  Role?
   createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  client           User?        @relation("ClientLeads", fields: [clientId], references: [id])
   unlocks          LeadUnlock[]
+
+  @@index([clientId])
 }
 
 model LeadUnlock {
@@ -46,9 +54,9 @@ model LeadUnlock {
   lead       Lead     @relation(fields: [leadId], references: [id])
   user       User     @relation(fields: [userId], references: [id])
 
+  @@unique([leadId, userId])
   @@index([leadId])
   @@index([userId])
-  @@unique([leadId, userId])
 }
 
 model Subscription {

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
+import { requireAppUser } from "@/lib/auth/requireAppUser";
 
 const requestSchema = z.object({
   leadId: z.string().uuid(),
-  userId: z.string().uuid(),
   dryRun: z.boolean().default(false),
 });
 
@@ -14,8 +14,13 @@ function hoursToMilliseconds(hours: number) {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireAppUser(["LAWYER", "ADMIN"]);
+    if (!auth.ok) {
+      return auth.response;
+    }
+
     const body = await request.json();
-    const { leadId, userId, dryRun } = requestSchema.parse(body);
+    const { leadId, dryRun } = requestSchema.parse(body);
 
     const unlockMax = Number(process.env.LEAD_UNLOCK_MAX ?? 3);
     const reopenHours = Number(process.env.LEAD_UNLOCK_REOPEN_HOURS ?? 48);
@@ -35,7 +40,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Lead nao encontrado." }, { status: 404 });
     }
 
-    const alreadyUnlocked = lead.unlocks.some((unlock) => unlock.userId === userId);
+    const alreadyUnlocked = lead.unlocks.some((unlock) => unlock.userId === auth.user.id);
     if (alreadyUnlocked) {
       return NextResponse.json(
         {
@@ -84,7 +89,7 @@ export async function POST(request: Request) {
     const unlock = await prisma.leadUnlock.create({
       data: {
         leadId,
-        userId,
+        userId: auth.user.id,
       },
     });
 
@@ -96,6 +101,10 @@ export async function POST(request: Request) {
       reason: canReopenAfter48h
         ? `Desbloqueio liberado por regra de ${reopenHours}h sem atendimento.`
         : "Desbloqueio realizado dentro do limite do plano.",
+      unlockedBy: {
+        userId: auth.user.id,
+        role: auth.user.role,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

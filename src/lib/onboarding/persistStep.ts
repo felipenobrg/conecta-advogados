@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const payloadSchema = z.object({
   sessionId: z.string().min(10),
-  step: z.number().min(1).max(6),
+  step: z.number().min(1).max(7),
   data: z.record(z.string(), z.unknown()),
 });
 

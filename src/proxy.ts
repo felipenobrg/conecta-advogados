@@ -4,6 +4,8 @@ import type { NextRequest } from "next/server";
 const roleProtectedRoutes: Record<string, string[]> = {
   "/dashboard": ["LAWYER", "ADMIN"],
   "/admin": ["ADMIN"],
+  "/leads": ["LAWYER", "ADMIN"],
+  "/client/dashboard": ["CLIENT"],
 };
 
 export function proxy(request: NextRequest) {
@@ -25,5 +27,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/leads/:path*", "/client/dashboard/:path*"],
 };

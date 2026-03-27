@@ -54,10 +54,10 @@ export const useOnboardingStore = create<OnboardingStore>()(
     (set, get) => ({
       sessionId: createSessionId(),
       currentStep: 1,
-      totalSteps: 6,
+      totalSteps: 7,
       isSubmitting: false,
       data: defaultData,
-      setStep: (step) => set({ currentStep: Math.max(1, Math.min(6, step)) }),
+      setStep: (step) => set({ currentStep: Math.max(1, Math.min(7, step)) }),
       patchData: (payload) =>
         set((state) => ({
           data: {
@@ -65,7 +65,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
             ...payload,
           },
         })),
-      nextStep: () => set({ currentStep: Math.min(get().currentStep + 1, 6) }),
+      nextStep: () => set({ currentStep: Math.min(get().currentStep + 1, 7) }),
       previousStep: () => set({ currentStep: Math.max(get().currentStep - 1, 1) }),
       setSubmitting: (value) => set({ isSubmitting: value }),
       reset: () =>
