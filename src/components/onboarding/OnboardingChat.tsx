@@ -100,6 +100,29 @@ function formatCurrencyBRL(amountInCents: number) {
     }).format(amountInCents / 100);
 }
 
+const fieldBaseClass =
+    "h-12 w-full rounded-2xl border bg-[#120727] px-4 text-base text-white outline-none transition placeholder:text-[#8d7fa7] focus:border-[#e8472a] focus:ring-2 focus:ring-[#e8472a]/30 disabled:opacity-60";
+
+function getFieldClass(hasError?: boolean) {
+    return `${fieldBaseClass} ${hasError ? "border-rose-500" : "border-[#4b3770]"}`;
+}
+
+const chipBaseClass =
+    "rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide transition sm:px-4";
+
+function getChipClass(selected: boolean) {
+    return `${chipBaseClass} ${selected
+        ? "border-[#e8472a] bg-[#e8472a] text-white shadow-[0_8px_24px_-16px_rgba(232,71,42,0.8)]"
+        : "border-[#3d2a5a] bg-[#140a28] text-[#d7cfe7] hover:border-[#e8472a]/60 hover:text-white"
+        }`;
+}
+
+const primaryButtonClass =
+    "h-12 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22] disabled:cursor-not-allowed disabled:opacity-50";
+
+const secondaryButtonClass =
+    "h-12 rounded-full border border-[#3d2a5a] bg-[#140a28] px-4 text-xs font-bold uppercase tracking-[0.2em] text-[#a89bc2] transition hover:bg-[#2d1b4e] disabled:cursor-not-allowed disabled:opacity-50";
+
 export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProps) {
     const router = useRouter();
     const {
@@ -318,11 +341,11 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                 case 2:
                     return "Voce esta como advogado ou cliente?";
                 case 3:
-                    return "Preencha seus dados para ativar sua conta de cliente.";
+                    return "Preencha seus dados para ativar sua conta e receber atendimento mais rapido.";
                 case 4:
                     return "Selecione a area juridica principal do seu caso.";
                 case 5:
-                    return "Revise os dados antes de confirmar.";
+                    return "Revise os dados e confirme o cadastro.";
                 case 6:
                     return "Finalizando cadastro...";
                 default:
@@ -339,9 +362,9 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                 return "Confirme o tipo de conta para seguir no fluxo correto.";
             case 3:
                 if (isLawyer) {
-                    if (lawyerStep3Substep === 0) return "Informe seus dados principais para comecar.";
-                    if (lawyerStep3Substep === 1) return "Defina seus dados de acesso e, se quiser, valide seu WhatsApp por OTP.";
-                    return "Finalize seu perfil pessoal e consentimento LGPD.";
+                    if (lawyerStep3Substep === 0) return "Vamos pelos dados basicos: nome, email e WhatsApp principal.";
+                    if (lawyerStep3Substep === 1) return "Agora configure sua senha e opcionalmente valide seu WhatsApp com OTP.";
+                    return "Finalizando dados pessoais com idade, genero e consentimento LGPD.";
                 }
                 return "Informe seus dados pessoais e seu WhatsApp principal.";
             case 4:
@@ -653,14 +676,14 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
         : ["Boas-vindas", "Perfil", "Dados", "Area", "Revisao", "Confirmacao"];
 
     return (
-        <section className="mx-auto grid min-h-[calc(100vh-6rem)] w-full max-w-6xl gap-5 px-4 pb-10 pt-6 lg:grid-cols-[minmax(0,620px)_minmax(0,1fr)]">
+        <section className="mx-auto grid min-h-[calc(100vh-6rem)] w-full max-w-6xl gap-4 px-4 pb-10 pt-6 lg:grid-cols-[minmax(0,620px)_minmax(0,1fr)] lg:gap-5">
             <div className="space-y-4 rounded-3xl border border-[#3d2a5a] bg-[#1b0c33]/88 p-4 shadow-xl backdrop-blur sm:p-5">
                 <div className="rounded-3xl border border-[#3d2a5a] bg-[#231540]/90 p-4 text-center shadow-xl backdrop-blur">
                     <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-[#e8472a]">{stepTitle}</p>
                     <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#a89bc2]">
                         Etapa {currentStep} de {totalSteps}
                     </p>
-                    <div className="mt-3 h-2 w-full rounded-full bg-[#2d1b4e]">
+                    <div className="mt-3 h-2 w-full rounded-full bg-[#2d1b4e]" role="progressbar" aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100} aria-label="Progresso do onboarding">
                         <motion.div
                             className="h-2 rounded-full bg-[#e8472a]"
                             animate={{ width: `${progress}%` }}
@@ -687,7 +710,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                     {currentStep === 1 && (
                         <button
                             type="button"
-                            className="h-12 w-full rounded-full bg-[#e8472a] px-4 text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                            className={`${primaryButtonClass} w-full text-sm`}
                             onClick={saveAndContinue}
                             disabled={isSubmitting}
                         >
@@ -700,26 +723,20 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                             <button
                                 type="button"
                                 onClick={() => setRole("LAWYER")}
-                                className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${data.role === "LAWYER"
-                                    ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                    : "border-[#3d2a5a] bg-white text-[#1a0a2e]"
-                                    }`}
+                                className={getChipClass(data.role === "LAWYER")}
                             >
                                 Sou Advogado
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setRole("CLIENT")}
-                                className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${data.role === "CLIENT"
-                                    ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                    : "border-[#3d2a5a] bg-white text-[#1a0a2e]"
-                                    }`}
+                                className={getChipClass(data.role === "CLIENT")}
                             >
                                 Sou Cliente
                             </button>
                             <button
                                 type="button"
-                                className="ml-auto h-11 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                                className={`${primaryButtonClass} ml-auto h-11`}
                                 onClick={saveAndContinue}
                                 disabled={!data.role || isSubmitting}
                             >
@@ -733,62 +750,73 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                             {isLawyer && (
                                 <div className="rounded-2xl border border-[#3d2a5a] bg-[#1a0a2e]/60 p-3 text-xs text-[#a89bc2]">
                                     <p className="font-semibold uppercase tracking-[0.16em] text-white">
-                                        Subetapa {lawyerStep3Substep + 1} de 3
+                                        Subetapa {lawyerStep3Substep + 1} de 3 {lawyerStep3Substep === 0 ? "- Identificacao" : lawyerStep3Substep === 1 ? "- Seguranca" : "- Validacao"}
                                     </p>
-                                    <p className="mt-1">Aproximadamente 1 minuto restante.</p>
+                                    <p className="mt-1">Resposta rapida: leve menos de 1 minuto para concluir.</p>
                                 </div>
                             )}
 
                             {(!isLawyer || lawyerStep3Substep === 0) && (
                                 <>
+                                    {!isLawyer && (
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Identificacao</p>
+                                    )}
                                     <input
-                                        placeholder="Nome completo"
+                                        placeholder="Ex: Maria Oliveira Santos"
+                                        aria-label="Nome completo"
                                         value={data.fullName}
                                         onChange={(event) => {
                                             patchData({ fullName: event.target.value });
                                             clearFieldError("fullName");
                                         }}
-                                        className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.fullName ? "border-rose-500" : "border-[#e8472a]"}`}
+                                        className={getFieldClass(Boolean(fieldErrors.fullName))}
                                     />
-                                    {fieldErrors.fullName && <p className="text-xs text-rose-300">{fieldErrors.fullName}</p>}
+                                    {fieldErrors.fullName && <p className="text-xs text-rose-300">{fieldErrors.fullName} Ex: nome e sobrenome.</p>}
 
                                     <input
-                                        placeholder="Email"
+                                        placeholder="seuemail@dominio.com"
                                         type="email"
+                                        aria-label="Email"
                                         value={data.email}
                                         onChange={(event) => {
                                             patchData({ email: event.target.value.trim().toLowerCase() });
                                             clearFieldError("email");
                                         }}
-                                        className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.email ? "border-rose-500" : "border-[#e8472a]"}`}
+                                        className={getFieldClass(Boolean(fieldErrors.email))}
                                     />
-                                    {fieldErrors.email && <p className="text-xs text-rose-300">{fieldErrors.email}</p>}
+                                    {fieldErrors.email && <p className="text-xs text-rose-300">{fieldErrors.email} Ex: nome@dominio.com.</p>}
 
                                     <input
-                                        placeholder="Numero de WhatsApp"
+                                        placeholder="(11) 98765-4321"
                                         type="tel"
+                                        aria-label="Numero de WhatsApp"
                                         value={data.phone}
                                         onChange={(event) => {
                                             patchData({ phone: formatWhatsappMask(event.target.value) });
                                             clearFieldError("phone");
                                         }}
-                                        className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.phone ? "border-rose-500" : "border-[#e8472a]"}`}
+                                        className={getFieldClass(Boolean(fieldErrors.phone))}
                                     />
+                                    <p className="text-[11px] text-[#a89bc2]">Formato: DDD + numero. Exemplo: (11) 98765-4321.</p>
                                     {fieldErrors.phone && <p className="text-xs text-rose-300">{fieldErrors.phone}</p>}
                                 </>
                             )}
 
                             {(!isLawyer || lawyerStep3Substep === 1) && (
                                 <>
+                                    {!isLawyer && (
+                                        <p className="pt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Seguranca</p>
+                                    )}
                                     <input
                                         placeholder="Crie uma senha forte"
                                         type="password"
+                                        aria-label="Senha"
                                         value={data.password}
                                         onChange={(event) => {
                                             patchData({ password: event.target.value });
                                             clearFieldError("password");
                                         }}
-                                        className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.password ? "border-rose-500" : "border-[#e8472a]"}`}
+                                        className={getFieldClass(Boolean(fieldErrors.password))}
                                     />
                                     <p className="text-[11px] text-[#a89bc2]">
                                         Use 8+ caracteres com letra maiuscula, minuscula e numero.
@@ -800,18 +828,19 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                             type="button"
                                             onClick={sendOtp}
                                             disabled={isSendingOtp}
-                                            className="min-h-11 rounded-full border border-[#3d2a5a] bg-[#231540] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#2d1b4e] disabled:opacity-60"
+                                            className="min-h-11 rounded-full border border-[#3d2a5a] bg-[#140a28] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#2d1b4e] disabled:opacity-60"
                                         >
                                             {isSendingOtp ? "Enviando OTP..." : "Enviar OTP (opcional)"}
                                         </button>
                                         <input
-                                            placeholder="Codigo"
+                                            placeholder="Codigo de 4 digitos"
+                                            aria-label="Codigo OTP"
                                             value={data.otpCode}
                                             onChange={(event) => {
                                                 patchData({ otpCode: event.target.value });
                                                 clearFieldError("otpCode");
                                             }}
-                                            className={`h-11 flex-1 rounded-full border bg-white px-3 text-sm text-[#1a0a2e] outline-none ${fieldErrors.otpCode ? "border-rose-500" : "border-[#e8472a]"}`}
+                                            className={getFieldClass(Boolean(fieldErrors.otpCode))}
                                         />
                                         <button
                                             type="button"
@@ -824,37 +853,42 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                     </div>
                                     {fieldErrors.otpCode && <p className="text-xs text-rose-300">{fieldErrors.otpCode}</p>}
                                     {isLawyer && (
-                                        <p className="text-[11px] text-[#a89bc2]">Validar OTP e opcional, mas recomendado para seguranca.</p>
+                                        <p className="text-[11px] text-[#a89bc2]">Validar OTP e opcional, mas recomendado para recuperar a conta e aumentar seguranca.</p>
                                     )}
                                 </>
                             )}
 
                             {(!isLawyer || lawyerStep3Substep === 2) && (
                                 <>
+                                    {!isLawyer && (
+                                        <p className="pt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Perfil e consentimento</p>
+                                    )}
                                     <div className="grid gap-2 sm:grid-cols-2">
                                         <input
-                                            placeholder="Idade"
+                                            placeholder="Ex: 34"
                                             type="number"
                                             min={18}
                                             max={120}
+                                            aria-label="Idade"
                                             value={data.age ?? ""}
                                             onChange={(event) => {
                                                 patchData({ age: event.target.value ? Number(event.target.value) : undefined });
                                                 clearFieldError("age");
                                             }}
-                                            className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.age ? "border-rose-500" : "border-[#e8472a]"}`}
+                                            className={getFieldClass(Boolean(fieldErrors.age))}
                                         />
                                         <select
                                             value={data.gender ?? ""}
+                                            aria-label="Genero"
                                             onChange={(event) => {
                                                 patchData({
                                                     gender: event.target.value ? (event.target.value as Gender) : undefined,
                                                 });
                                                 clearFieldError("gender");
                                             }}
-                                            className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.gender ? "border-rose-500" : "border-[#e8472a]"}`}
+                                            className={getFieldClass(Boolean(fieldErrors.gender))}
                                         >
-                                            <option value="">Genero</option>
+                                            <option value="">Selecione seu genero</option>
                                             <option value="F">Feminino</option>
                                             <option value="M">Masculino</option>
                                             <option value="O">Outro</option>
@@ -873,7 +907,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                             }}
                                             className="mt-1"
                                         />
-                                        Concordo com os termos de uso e politica de privacidade (LGPD).
+                                        Concordo com os termos de uso e politica de privacidade (LGPD) para criar minha conta.
                                     </label>
                                 </>
                             )}
@@ -882,7 +916,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                 {isLawyer && lawyerStep3Substep > 0 && (
                                     <button
                                         type="button"
-                                        className="h-12 rounded-full border border-[#3d2a5a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-[#a89bc2] transition hover:bg-[#2d1b4e]"
+                                        className={secondaryButtonClass}
                                         onClick={goBackLawyerStep3Substep}
                                         disabled={isSubmitting}
                                     >
@@ -892,7 +926,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
 
                                 <button
                                     type="button"
-                                    className="h-12 flex-1 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                                    className={`${primaryButtonClass} flex-1`}
                                     onClick={saveAndContinue}
                                     disabled={!canContinueCurrentStep() || isSubmitting}
                                 >
@@ -905,24 +939,27 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                     {currentStep === 4 && isLawyer && (
                         <div className="grid gap-3">
                             <input
-                                placeholder="Nome do escritorio"
+                                placeholder="Ex: Oliveira & Associados"
+                                aria-label="Nome do escritorio"
                                 value={data.officeName}
                                 onChange={(event) => {
                                     patchData({ officeName: event.target.value });
                                     clearFieldError("officeName");
                                 }}
-                                className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.officeName ? "border-rose-500" : "border-[#e8472a]"}`}
+                                className={getFieldClass(Boolean(fieldErrors.officeName))}
                             />
                             {fieldErrors.officeName && <p className="text-xs text-rose-300">{fieldErrors.officeName}</p>}
                             <input
-                                placeholder="URL da logo do escritorio (opcional)"
+                                placeholder="https://seusite.com/logo.png (opcional)"
+                                aria-label="URL da logo do escritorio"
                                 value={data.officeLogoUrl}
                                 onChange={(event) => patchData({ officeLogoUrl: event.target.value })}
-                                className="h-12 rounded-full border border-[#e8472a] bg-white px-4 text-sm text-[#1a0a2e] outline-none"
+                                className={getFieldClass(Boolean(fieldErrors.officeLogoUrl))}
                             />
+                            <p className="text-[11px] text-[#a89bc2]">Aceita links publicos de imagem (PNG ou JPG).</p>
                             <button
                                 type="button"
-                                className="h-12 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                                className={primaryButtonClass}
                                 onClick={saveAndContinue}
                                 disabled={!canContinueCurrentStep() || isSubmitting}
                             >
@@ -941,19 +978,17 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                             key={area}
                                             type="button"
                                             onClick={() => patchData({ clientLegalArea: area })}
-                                            className={`rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide ${selected
-                                                ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                                : "border-[#3d2a5a] bg-white text-[#1a0a2e]"
-                                                }`}
+                                            className={getChipClass(selected)}
                                         >
                                             {area}
                                         </button>
                                     );
                                 })}
                             </div>
+                            {fieldErrors.clientLegalArea && <p className="text-xs text-rose-300">{fieldErrors.clientLegalArea}</p>}
                             <button
                                 type="button"
-                                className="h-12 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                                className={primaryButtonClass}
                                 onClick={saveAndContinue}
                                 disabled={!canContinueCurrentStep() || isSubmitting}
                             >
@@ -965,34 +1000,37 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                     {currentStep === 5 && isLawyer && (
                         <div className="grid gap-3">
                             <input
-                                placeholder="Numero da OAB"
+                                placeholder="Ex: 123456"
+                                aria-label="Numero da OAB"
                                 value={data.oabNumber}
                                 onChange={(event) => {
                                     patchData({ oabNumber: normalizeOabNumber(event.target.value) });
                                     clearFieldError("oabNumber");
                                 }}
-                                className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.oabNumber ? "border-rose-500" : "border-[#e8472a]"}`}
+                                className={getFieldClass(Boolean(fieldErrors.oabNumber))}
                             />
                             {fieldErrors.oabNumber && <p className="text-xs text-rose-300">{fieldErrors.oabNumber}</p>}
                             <select
                                 value={data.oabState}
+                                aria-label="Estado da OAB"
                                 onChange={(event) => {
                                     patchData({ oabState: event.target.value });
                                     clearFieldError("oabState");
                                 }}
-                                className={`h-12 rounded-full border bg-white px-4 text-sm text-[#1a0a2e] outline-none ${fieldErrors.oabState ? "border-rose-500" : "border-[#e8472a]"}`}
+                                className={getFieldClass(Boolean(fieldErrors.oabState))}
                             >
-                                <option value="">Estado OAB</option>
+                                <option value="">Selecione o estado da OAB</option>
                                 {oabStates.map((state) => (
                                     <option key={state} value={state}>
                                         {state}
                                     </option>
                                 ))}
                             </select>
+                            <p className="text-[11px] text-[#a89bc2]">Informe os mesmos dados do seu registro profissional.</p>
                             {fieldErrors.oabState && <p className="text-xs text-rose-300">{fieldErrors.oabState}</p>}
                             <button
                                 type="button"
-                                className="h-12 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                                className={primaryButtonClass}
                                 onClick={saveAndContinue}
                                 disabled={!canContinueCurrentStep() || isSubmitting}
                             >
@@ -1014,7 +1052,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                             </p>
                             <button
                                 type="button"
-                                className="mt-1 h-12 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                                className={`${primaryButtonClass} mt-1`}
                                 onClick={saveAndContinue}
                                 disabled={isSubmitting}
                             >
@@ -1124,10 +1162,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                                 togglePracticeArea(area);
                                                 clearFieldError("practiceAreas");
                                             }}
-                                            className={`rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide ${selected
-                                                ? "border-[#e8472a] bg-[#e8472a] text-white"
-                                                : "border-[#3d2a5a] bg-white text-[#1a0a2e]"
-                                                }`}
+                                            className={getChipClass(selected)}
                                         >
                                             {area}
                                         </button>
@@ -1137,7 +1172,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                             {fieldErrors.practiceAreas && <p className="text-xs text-rose-300">{fieldErrors.practiceAreas}</p>}
                             <button
                                 type="button"
-                                className="h-12 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                                className={primaryButtonClass}
                                 onClick={saveAndContinue}
                                 disabled={!canContinueCurrentStep() || isSubmitting}
                             >
@@ -1171,7 +1206,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                             </p>
                             <button
                                 type="button"
-                                className="h-11 rounded-full border border-[#3d2a5a] px-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#a89bc2] transition hover:bg-[#2d1b4e]"
+                                className="h-11 rounded-full border border-[#3d2a5a] bg-[#140a28] px-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#a89bc2] transition hover:bg-[#2d1b4e]"
                                 onClick={() => {
                                     setStatusMessage("");
                                     setFieldErrors((current) => {
@@ -1188,7 +1223,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                             </button>
                             <button
                                 type="button"
-                                className="mt-1 h-12 rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22]"
+                                className={`${primaryButtonClass} mt-1`}
                                 onClick={saveAndContinue}
                                 disabled={isSubmitting}
                             >
@@ -1204,7 +1239,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                         </div>
                     )}
 
-                    {statusMessage && <p className="text-xs text-[#ffd2c8]">{statusMessage}</p>}
+                    {statusMessage && <p className="rounded-xl border border-[#3d2a5a] bg-[#1a0a2e]/70 px-3 py-2 text-xs text-[#ffd2c8]" aria-live="polite">{statusMessage}</p>}
                     {otpStatus === "verified" && <p className="text-xs font-semibold text-emerald-400">WhatsApp verificado.</p>}
                     {isSubmitting && <p className="text-xs font-semibold text-[#ffb29f]">Salvando etapa...</p>}
 
@@ -1220,7 +1255,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                     previousStep();
                                 }}
                                 disabled={isSubmitting}
-                                className="rounded-full border border-[#3d2a5a] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#a89bc2] disabled:opacity-30"
+                                className="rounded-full border border-[#3d2a5a] bg-[#140a28] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#a89bc2] transition hover:bg-[#2d1b4e] disabled:opacity-30"
                             >
                                 Voltar
                             </button>

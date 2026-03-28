@@ -7,12 +7,14 @@ declare global {
 }
 
 function createPrismaClient() {
-  if (!process.env.DATABASE_URL) {
+  const databaseUrl = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+
+  if (!databaseUrl) {
     return null;
   }
 
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: databaseUrl,
   });
 
   const adapter = new PrismaPg(pool);
@@ -27,7 +29,7 @@ export const prisma =
     {},
     {
       get() {
-        throw new Error("DATABASE_URL nao configurada.");
+        throw new Error("DATABASE_URL/SUPABASE_DB_URL nao configurada.");
       },
     }
   ) as PrismaClient);

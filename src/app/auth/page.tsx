@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -30,7 +30,7 @@ function setRoleCookie(role: AppRole) {
     document.cookie = `app_role=${role}; Path=/; Max-Age=2592000; SameSite=Lax`;
 }
 
-export default function AuthPage() {
+function AuthPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -41,7 +41,7 @@ export default function AuthPage() {
     const [isMagicLoading, setIsMagicLoading] = useState(false);
 
     const requestedRole = normalizeRole(searchParams.get("role"));
-    const roleLabel = requestedRole === "LAWYER" ? "advogado" : "cliente";
+    const requestedRoleLabel = requestedRole === "LAWYER" ? "advogado" : requestedRole === "ADMIN" ? "administrador" : "cliente";
     const displayMessage = message;
 
     function applyRoleAndRedirect(role: AppRole) {
@@ -156,6 +156,7 @@ export default function AuthPage() {
                 <p className="mt-2 text-sm text-zinc-200">
                     Novos usuarios devem se cadastrar apenas pelo onboarding.
                 </p>
+                <p className="mt-1 text-xs text-zinc-300">Acesso solicitado para perfil: {requestedRoleLabel}.</p>
 
                 <form onSubmit={onSubmit} className="mt-5 space-y-3">
                     <input
@@ -203,5 +204,22 @@ export default function AuthPage() {
                 </div>
             </section>
         </main>
+    );
+}
+
+export default function AuthPage() {
+    return (
+        <Suspense
+            fallback={
+                <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)] px-4 py-10 text-white">
+                    <MainHeader className="mb-3" />
+                    <section className="mx-auto w-full max-w-md rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur">
+                        <p className="text-sm text-zinc-200">Carregando autenticacao...</p>
+                    </section>
+                </main>
+            }
+        >
+            <AuthPageContent />
+        </Suspense>
     );
 }
