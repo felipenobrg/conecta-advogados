@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { MainHeader } from "@/components/navigation/MainHeader";
+import { AppShell } from "@/components/navigation/AppShell";
 
 type LeadStatus = "PENDING" | "CONTACTED" | "CONVERTED" | "LOST";
 
@@ -95,10 +95,8 @@ export default function LeadsPage() {
     }, [loadLeads]);
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)] pb-10 text-white">
-            <MainHeader className="mb-2" />
-
-            <section className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6">
+        <AppShell title="Leads" className="pb-10">
+            <section className="mx-auto max-w-6xl space-y-4">
                 <header className="rounded-3xl border border-[#3d2a5a] bg-[#231540]/90 p-5 shadow-xl backdrop-blur">
                     <h1 className="text-2xl font-black tracking-tight">Leads Recebidos</h1>
                     <p className="mt-1 text-sm text-[#a89bc2]">
@@ -234,6 +232,6 @@ export default function LeadsPage() {
                     </div>
                 </section>
             </section>
-        </main>
+        </AppShell>
     );
 }

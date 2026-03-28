@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCcw, Save, TrendingUp } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { MainHeader } from "@/components/navigation/MainHeader";
+import { AppShell } from "@/components/navigation/AppShell";
 
 type DashboardPayload = {
     metrics: {
@@ -258,14 +258,12 @@ export default function DashboardPage() {
     }, [loadDashboard]);
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)] pb-10 text-white">
-            <MainHeader className="mb-1" />
-
-            <section className="mx-auto max-w-7xl space-y-4 px-4 sm:px-6">
-                <header className="rounded-3xl border border-white/15 bg-white/10 p-4 shadow-xl backdrop-blur">
+        <AppShell title="Dashboard" className="pb-10">
+            <section className="mx-auto max-w-7xl space-y-5">
+                <header className="rounded-3xl border border-[#3d2a5a] bg-[#231540]/85 p-4 shadow-xl backdrop-blur">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">Dashboard do advogado</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a89bc2]">Dashboard do advogado</p>
                             <h1 className="mt-1 text-2xl font-black tracking-tight">Performance e CRM no mesmo painel</h1>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -273,13 +271,13 @@ export default function DashboardPage() {
                                 type="date"
                                 value={fromDate}
                                 onChange={(event) => setFromDate(event.target.value)}
-                                className="h-10 rounded-full border border-white/20 bg-white/10 px-3 text-sm"
+                                className="h-10 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white"
                             />
                             <input
                                 type="date"
                                 value={toDate}
                                 onChange={(event) => setToDate(event.target.value)}
-                                className="h-10 rounded-full border border-white/20 bg-white/10 px-3 text-sm"
+                                className="h-10 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white"
                             />
                             <button
                                 type="button"
@@ -287,7 +285,7 @@ export default function DashboardPage() {
                                     void loadDashboard();
                                     void loadLeads();
                                 }}
-                                className="inline-flex h-10 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold hover:bg-white/15"
+                                className="inline-flex h-10 items-center gap-2 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-4 text-sm font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e] hover:text-white"
                             >
                                 <RefreshCcw size={14} /> Atualizar
                             </button>
@@ -314,8 +312,8 @@ export default function DashboardPage() {
                 )}
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <article className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
-                        <p className="text-xs text-zinc-300">Total de leads recebidos</p>
+                    <article className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/85 p-4 shadow-sm backdrop-blur transition hover:-translate-y-px hover:border-[#5a3b82]">
+                        <p className="text-xs text-[#a89bc2]">Total de leads recebidos</p>
                         <p className="mt-2 text-2xl font-black text-white">
                             {payload?.metrics.totalLeadsReceived ?? 0}
                         </p>
@@ -323,22 +321,22 @@ export default function DashboardPage() {
                             <TrendingUp size={14} /> Dados reais no periodo selecionado
                         </p>
                     </article>
-                    <article className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
-                        <p className="text-xs text-zinc-300">Leads desbloqueados</p>
+                    <article className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/85 p-4 shadow-sm backdrop-blur transition hover:-translate-y-px hover:border-[#5a3b82]">
+                        <p className="text-xs text-[#a89bc2]">Leads desbloqueados</p>
                         <p className="mt-2 text-2xl font-black text-white">
                             {payload?.metrics.leadsUnlockedInRange ?? 0}
                         </p>
                     </article>
-                    <article className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
-                        <p className="text-xs text-zinc-300">Taxa de conversão</p>
+                    <article className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/85 p-4 shadow-sm backdrop-blur transition hover:-translate-y-px hover:border-[#5a3b82]">
+                        <p className="text-xs text-[#a89bc2]">Taxa de conversão</p>
                         <div className="mt-3 flex items-center gap-3">
                             <div className="h-14 w-14 rounded-full border-4 border-[#e8472a] border-l-white/20" />
                             <p className="text-lg font-black text-white">{conversionRateText}%</p>
                         </div>
                     </article>
-                    <article className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
-                        <p className="text-xs text-zinc-300">Atendente</p>
-                        <select className="mt-2 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm">
+                    <article className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/85 p-4 shadow-sm backdrop-blur transition hover:-translate-y-px hover:border-[#5a3b82]">
+                        <p className="text-xs text-[#a89bc2]">Atendente</p>
+                        <select className="mt-2 w-full rounded-lg border border-[#3d2a5a] bg-[#1a0a2e] px-3 py-2 text-sm text-white">
                             <option>Todas</option>
                             <option>Equipe A</option>
                             <option>Equipe B</option>
@@ -346,7 +344,7 @@ export default function DashboardPage() {
                     </article>
                 </div>
 
-                <section className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
+                <section className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/85 p-4 shadow-sm backdrop-blur">
                     <h2 className="text-sm font-semibold text-zinc-100">Desempenho mensal</h2>
                     <div className="mt-3 h-64 w-full">
                         <ResponsiveContainer>
@@ -360,12 +358,12 @@ export default function DashboardPage() {
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
+                <section className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/85 p-4 shadow-sm backdrop-blur">
                     <h2 className="text-sm font-semibold text-zinc-100">Histórico de contatos</h2>
                     <div className="mt-3 overflow-x-auto">
                         <table className="w-full min-w-135 text-left text-sm">
                             <thead>
-                                <tr className="text-zinc-300">
+                                <tr className="text-[#a89bc2]">
                                     <th className="pb-2">Lead</th>
                                     <th className="pb-2">Área</th>
                                     <th className="pb-2">Status</th>
@@ -374,7 +372,7 @@ export default function DashboardPage() {
                             </thead>
                             <tbody>
                                 {(payload?.history ?? []).map((row) => (
-                                    <tr key={row.id} className="border-t border-white/10 text-zinc-100">
+                                    <tr key={row.id} className="border-t border-[#3d2a5a] text-zinc-100">
                                         <td className="py-2">{row.lead}</td>
                                         <td className="py-2">{row.area}</td>
                                         <td className="py-2">{row.status}</td>
@@ -385,14 +383,14 @@ export default function DashboardPage() {
                         </table>
 
                         {!loading && (payload?.history ?? []).length === 0 && (
-                            <p className="mt-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-300">
+                            <p className="mt-3 rounded-xl border border-[#3d2a5a] bg-[#1a0a2e] px-3 py-2 text-sm text-[#a89bc2]">
                                 Sem contatos para o periodo selecionado.
                             </p>
                         )}
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-sm backdrop-blur">
+                <section className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/85 p-4 shadow-sm backdrop-blur">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-zinc-100">CRM de leads</h2>
                         <div className="grid gap-2 sm:grid-cols-4">
@@ -403,7 +401,7 @@ export default function DashboardPage() {
                                     setArea(event.target.value);
                                 }}
                                 placeholder="Área"
-                                className="h-10 rounded-full border border-white/20 bg-white/10 px-3 text-sm"
+                                className="h-10 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white"
                             />
                             <input
                                 value={state}
@@ -412,7 +410,7 @@ export default function DashboardPage() {
                                     setState(event.target.value);
                                 }}
                                 placeholder="UF"
-                                className="h-10 rounded-full border border-white/20 bg-white/10 px-3 text-sm"
+                                className="h-10 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white"
                             />
                             <select
                                 value={statusFilter}
@@ -420,7 +418,7 @@ export default function DashboardPage() {
                                     setPage(1);
                                     setStatusFilter(event.target.value as "" | LeadStatus);
                                 }}
-                                className="h-10 rounded-full border border-white/20 bg-white/10 px-3 text-sm"
+                                className="h-10 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white"
                             >
                                 {statusOptions.map((option) => (
                                     <option key={option.label} value={option.value}>
@@ -436,7 +434,7 @@ export default function DashboardPage() {
                                     setStatusFilter("");
                                     setPage(1);
                                 }}
-                                className="h-10 rounded-full border border-white/20 bg-white/10 px-3 text-sm font-semibold hover:bg-white/15"
+                                className="h-10 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e] hover:text-white"
                             >
                                 Limpar filtros
                             </button>
@@ -464,7 +462,7 @@ export default function DashboardPage() {
                     <div className="mt-3 overflow-x-auto">
                         <table className="w-full min-w-245 text-left text-sm">
                             <thead>
-                                <tr className="border-b border-white/15 text-zinc-300">
+                                <tr className="border-b border-[#3d2a5a] text-[#a89bc2]">
                                     <th className="pb-2">Lead</th>
                                     <th className="pb-2">Area</th>
                                     <th className="pb-2">UF</th>
@@ -476,10 +474,10 @@ export default function DashboardPage() {
                             </thead>
                             <tbody>
                                 {leads.map((lead) => (
-                                    <tr key={lead.id} className="border-b border-white/10 text-zinc-100">
+                                    <tr key={lead.id} className="border-b border-[#3d2a5a]/80 text-zinc-100">
                                         <td className="py-2">
                                             <p className="font-semibold">{lead.name}</p>
-                                            <p className="text-xs text-zinc-300">{lead.email}</p>
+                                            <p className="text-xs text-[#a89bc2]">{lead.email}</p>
                                         </td>
                                         <td className="py-2">{lead.area}</td>
                                         <td className="py-2">{lead.state}</td>
@@ -489,7 +487,7 @@ export default function DashboardPage() {
                                             </span>
                                         </td>
                                         <td className="py-2">{lead.unlockCount}</td>
-                                        <td className="py-2 text-zinc-300">{formatDate(lead.createdAt)}</td>
+                                        <td className="py-2 text-[#a89bc2]">{formatDate(lead.createdAt)}</td>
                                         <td className="py-2">
                                             <div className="flex items-center gap-2">
                                                 <select
@@ -500,7 +498,7 @@ export default function DashboardPage() {
                                                             [lead.id]: event.target.value as LeadStatus,
                                                         }))
                                                     }
-                                                    className="h-9 rounded-lg border border-white/20 bg-white/10 px-2 text-xs"
+                                                    className="h-9 rounded-lg border border-[#3d2a5a] bg-[#1a0a2e] px-2 text-xs text-white"
                                                 >
                                                     {statusOptions
                                                         .filter((option) => option.value !== "")
@@ -528,12 +526,12 @@ export default function DashboardPage() {
                     </div>
 
                     {!leadsLoading && leads.length === 0 && (
-                        <p className="mt-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-300">
+                        <p className="mt-3 rounded-xl border border-[#3d2a5a] bg-[#1a0a2e] px-3 py-2 text-sm text-[#a89bc2]">
                             Nenhum lead encontrado com os filtros atuais.
                         </p>
                     )}
 
-                    <div className="mt-4 flex items-center justify-between text-sm text-zinc-300">
+                    <div className="mt-4 flex items-center justify-between text-sm text-[#a89bc2]">
                         <p>
                             Página {leadsPayload?.page ?? page} de {leadsPayload?.totalPages ?? 1} | Total: {leadsPayload?.total ?? 0}
                         </p>
@@ -542,7 +540,7 @@ export default function DashboardPage() {
                                 type="button"
                                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                                 disabled={(leadsPayload?.page ?? page) <= 1}
-                                className="h-9 rounded-full border border-white/20 bg-white/10 px-3 font-semibold disabled:opacity-40"
+                                className="h-9 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 font-semibold transition hover:bg-[#2d1b4e] hover:text-white disabled:opacity-40"
                             >
                                 Anterior
                             </button>
@@ -555,7 +553,7 @@ export default function DashboardPage() {
                                     })
                                 }
                                 disabled={(leadsPayload?.page ?? page) >= (leadsPayload?.totalPages ?? 1)}
-                                className="h-9 rounded-full border border-white/20 bg-white/10 px-3 font-semibold disabled:opacity-40"
+                                className="h-9 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 font-semibold transition hover:bg-[#2d1b4e] hover:text-white disabled:opacity-40"
                             >
                                 Próxima
                             </button>
@@ -563,6 +561,6 @@ export default function DashboardPage() {
                     </div>
                 </section>
             </section>
-        </main>
+        </AppShell>
     );
 }

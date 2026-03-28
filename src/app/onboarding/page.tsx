@@ -1,22 +1,24 @@
 import { OnboardingChat } from "@/components/onboarding/OnboardingChat";
-import { MainHeader } from "@/components/navigation/MainHeader";
+import { AppShell } from "@/components/navigation/AppShell";
 
 type OnboardingPageProps = {
     searchParams: Promise<{
         role?: string | string[];
+        entry?: string | string[];
     }>;
 };
 
 export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
     const params = await searchParams;
     const roleRaw = Array.isArray(params.role) ? params.role[0] : params.role;
+    const entryRaw = Array.isArray(params.entry) ? params.entry[0] : params.entry;
     const initialRole =
         roleRaw === "LAWYER" || roleRaw === "CLIENT" ? roleRaw : undefined;
+    const initialEntry = entryRaw === "leads" ? "leads" : undefined;
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)]">
-            <MainHeader />
-            <OnboardingChat initialRole={initialRole} />
-        </main>
+        <AppShell title="Onboarding" showSidebar={false}>
+            <OnboardingChat initialRole={initialRole} initialEntry={initialEntry} />
+        </AppShell>
     );
 }

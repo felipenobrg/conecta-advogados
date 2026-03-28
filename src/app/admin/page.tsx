@@ -18,7 +18,7 @@ import {
     YAxis,
 } from "recharts";
 import { Eye, LogOut, RefreshCcw, Save } from "lucide-react";
-import { MainHeader } from "@/components/navigation/MainHeader";
+import { AppShell } from "@/components/navigation/AppShell";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Plan = "START" | "PRO" | "PRIMUM";
@@ -284,10 +284,8 @@ export default function AdminPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)] pb-10 text-white">
-            <MainHeader className="mb-2" />
-
-            <section className="mx-auto max-w-7xl px-4 sm:px-6">
+        <AppShell title="Admin" className="pb-10">
+            <section className="mx-auto max-w-7xl">
                 <header className="rounded-3xl border border-[#3d2a5a] bg-[#231540]/90 p-5 shadow-xl backdrop-blur">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
@@ -626,6 +624,6 @@ export default function AdminPage() {
                     </div>
                 </div>
             )}
-        </main>
+        </AppShell>
     );
 }

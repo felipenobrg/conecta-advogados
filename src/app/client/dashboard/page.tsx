@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { MainHeader } from "@/components/navigation/MainHeader";
+import { AppShell } from "@/components/navigation/AppShell";
 
 type LeadStatus = "PENDING" | "CONTACTED" | "CONVERTED" | "LOST";
 
@@ -133,10 +133,8 @@ export default function ClientDashboardPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#1f0f34_0%,#120022_55%)] pb-10 text-white">
-            <MainHeader className="mb-2" />
-
-            <section className="mx-auto grid w-full max-w-7xl gap-4 px-4 sm:px-6 lg:grid-cols-[1fr_1.25fr]">
+        <AppShell title="Cliente" className="pb-10">
+            <section className="mx-auto grid w-full max-w-7xl gap-4 lg:grid-cols-[1fr_1.25fr]">
                 <article className="rounded-3xl border border-[#3d2a5a] bg-[#231540]/90 p-5 shadow-xl backdrop-blur">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a89bc2]">Área do cliente</p>
                     <h1 className="mt-2 text-2xl font-black tracking-tight">Nova solicitação jurídica</h1>
@@ -253,6 +251,6 @@ export default function ClientDashboardPage() {
                     )}
                 </article>
             </section>
-        </main>
+        </AppShell>
     );
 }
