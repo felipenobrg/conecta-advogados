@@ -4,7 +4,7 @@ export type PlanConfig = {
   type: "one_time" | "recurring";
   amountInCents: number;
   currency: "BRL";
-  leadsLimit: "8" | "unlimited";
+  leadsLimit: "8" | "30" | "75";
   features: string[];
   stripePriceIdEnvKey?: string;
 };
@@ -14,30 +14,45 @@ export const planCatalog: PlanConfig[] = [
     id: "START",
     name: "Start",
     type: "one_time",
-    amountInCents: Number(process.env.NEXT_PUBLIC_PLAN_START_PRICE_CENTS ?? 0),
+    amountInCents: 14700,
     currency: "BRL",
     leadsLimit: "8",
-    features: ["Ate 8 contatos"],
+    features: [
+      "8 contatos qualificados",
+      "Nivel de urgencia do cliente",
+      "Plano unico (nao renovavel)",
+    ],
     stripePriceIdEnvKey: "STRIPE_PRICE_START",
   },
   {
     id: "PRO",
     name: "Pro",
     type: "recurring",
-    amountInCents: Number(process.env.NEXT_PUBLIC_PLAN_PRO_PRICE_CENTS ?? 0),
+    amountInCents: 49700,
     currency: "BRL",
-    leadsLimit: "unlimited",
-    features: ["Contatos ilimitados"],
+    leadsLimit: "30",
+    features: [
+      "30 contatos verificados",
+      "Nivel de urgencia do cliente",
+      "Plano sem fidelidade",
+      "CRM interno",
+    ],
     stripePriceIdEnvKey: "STRIPE_PRICE_PRO",
   },
   {
     id: "PREMIUM",
     name: "Premium",
     type: "recurring",
-    amountInCents: Number(process.env.NEXT_PUBLIC_PLAN_PREMIUM_PRICE_CENTS ?? 0),
+    amountInCents: 129700,
     currency: "BRL",
-    leadsLimit: "unlimited",
-    features: ["Contatos ilimitados", "Dashboard premium"],
+    leadsLimit: "75",
+    features: [
+      "75 contatos verificados",
+      "Nivel de urgencia do cliente",
+      "Plano sem fidelidade",
+      "CRM interno",
+      "Dashboard de resultados",
+    ],
     stripePriceIdEnvKey: "STRIPE_PRICE_PREMIUM",
   },
 ];

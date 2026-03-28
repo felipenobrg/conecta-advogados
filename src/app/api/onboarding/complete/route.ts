@@ -1,25 +1,44 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getPaymentProvider } from "@/lib/payment";
 
+const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+const normalizePhoneDigits = (value: string) => value.replace(/\D/g, "");
+const optionalUrl = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  },
+  z.string().url().optional()
+);
+
 const requestSchema = z
   .object({
     sessionId: z.string().min(10),
-    fullName: z.string().min(2),
+    fullName: z.string().trim().min(2),
     age: z.number().int().min(18).max(120).optional(),
     gender: z.enum(["M", "F", "O"]).optional(),
-    email: z.string().email(),
-    phone: z.string().min(8),
-    password: z.string().min(6),
+    email: z.string().trim().toLowerCase().email(),
+    phone: z
+      .string()
+      .transform((value) => normalizePhoneDigits(value))
+      .refine((value) => value.length >= 10 && value.length <= 11, {
+        message: "WhatsApp invalido. Informe DDD + numero.",
+      }),
+    password: z.string().refine((value) => strongPasswordRegex.test(value), {
+      message: "Senha fraca. Use 8+ caracteres com maiuscula, minuscula e numero.",
+    }),
     phoneVerified: z.boolean(),
     consentAccepted: z.boolean(),
     role: z.enum(["LAWYER", "CLIENT"]),
-    officeName: z.string().min(2).optional(),
-    officeLogoUrl: z.string().url().optional(),
-    oabNumber: z.string().min(4).max(12).optional(),
-    oabState: z.string().length(2).optional(),
+    officeName: z.string().trim().min(2).optional(),
+    officeLogoUrl: optionalUrl,
+    oabNumber: z.string().regex(/^\d{4,12}$/, "Numero da OAB deve conter apenas numeros.").optional(),
+    oabState: z.string().length(2).transform((value) => value.toUpperCase()).optional(),
     clientLegalArea: z.string().optional(),
     selectedPlan: z.enum(["START", "PRO", "PREMIUM"]).optional(),
     practiceAreas: z.array(z.string()).default([]),
@@ -123,14 +142,22 @@ export async function POST(request: Request) {
 
     if (!payload.consentAccepted) {
       return NextResponse.json(
-        { success: false, message: "Consentimento LGPD obrigatorio." },
+        {
+          success: false,
+          code: "CONSENT_REQUIRED",
+          message: "Consentimento LGPD obrigatorio.",
+        },
         { status: 400 }
       );
     }
 
     if (payload.role === "LAWYER" && !payload.selectedPlan) {
       return NextResponse.json(
-        { success: false, message: "Advogado precisa selecionar um plano." },
+        {
+          success: false,
+          code: "PLAN_REQUIRED",
+          message: "Advogado precisa selecionar um plano.",
+        },
         { status: 400 }
       );
     }
@@ -194,33 +221,45 @@ export async function POST(request: Request) {
 
     if (payload.role === "LAWYER") {
       if (needsPayment) {
-        await prisma.subscription.upsert({
-          where: { userId: user.id },
-          update: {
-            provider: "stripe",
-            providerId: `pending-${user.id}`,
-            status: "PAST_DUE",
-            plan: selectedPlan,
-          },
-          create: {
-            userId: user.id,
-            provider: "stripe",
-            providerId: `pending-${user.id}`,
-            status: "PAST_DUE",
-            plan: selectedPlan,
-          },
-        });
-
         const provider = getPaymentProvider();
         const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
-        const checkout = await provider.createCheckout({
-          userId: user.id,
-          planId: selectedPlan,
-          successUrl: `${appUrl}/dashboard?checkout=success`,
-          cancelUrl: `${appUrl}/onboarding?checkout=canceled`,
-          customerEmail: user.email,
-        });
-        checkoutUrl = checkout.url;
+        try {
+          const checkout = await provider.createCheckout({
+            userId: user.id,
+            planId: selectedPlan,
+            successUrl: `${appUrl}/dashboard?checkout=success`,
+            cancelUrl: `${appUrl}/onboarding?checkout=canceled`,
+            customerEmail: user.email,
+          });
+
+          await prisma.subscription.upsert({
+            where: { userId: user.id },
+            update: {
+              provider: "stripe",
+              providerId: `pending-${user.id}`,
+              status: "PAST_DUE",
+              plan: selectedPlan,
+            },
+            create: {
+              userId: user.id,
+              provider: "stripe",
+              providerId: `pending-${user.id}`,
+              status: "PAST_DUE",
+              plan: selectedPlan,
+            },
+          });
+
+          checkoutUrl = checkout.url;
+        } catch {
+          return NextResponse.json(
+            {
+              success: false,
+              code: "CHECKOUT_INIT_FAILED",
+              message: "Nao foi possivel iniciar o checkout agora. Tente novamente em instantes.",
+            },
+            { status: 502 }
+          );
+        }
       } else {
         await prisma.subscription.upsert({
           where: { userId: user.id },
@@ -251,15 +290,50 @@ export async function POST(request: Request) {
       practiceAreasCount: payload.practiceAreas.length,
     });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const targets = Array.isArray(error.meta?.target) ? error.meta.target.map(String) : [];
+
+      if (targets.some((target) => target.includes("oabNumber") || target.includes("oabState"))) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "OAB_ALREADY_REGISTERED",
+            message: "Esta OAB ja esta vinculada a outro cadastro.",
+          },
+          { status: 409 }
+        );
+      }
+
+      if (targets.some((target) => target.includes("email"))) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "EMAIL_ALREADY_REGISTERED",
+            message: "Este email ja possui cadastro.",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, message: "Payload invalido.", issues: error.issues },
+        {
+          success: false,
+          code: "VALIDATION_ERROR",
+          message: "Payload invalido.",
+          issues: error.issues,
+        },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { success: false, message: "Nao foi possivel concluir onboarding." },
+      {
+        success: false,
+        code: "ONBOARDING_COMPLETE_UNEXPECTED",
+        message: "Nao foi possivel concluir onboarding.",
+      },
       { status: 500 }
     );
   }

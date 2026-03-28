@@ -29,6 +29,14 @@ export type OnboardingData = {
   consentAccepted: boolean;
 };
 
+type PersistedOnboardingState = Partial<{
+  sessionId: string;
+  currentStep: number;
+  totalSteps: number;
+  isSubmitting: boolean;
+  data: Partial<OnboardingData>;
+}>;
+
 const defaultData: OnboardingData = {
   fullName: "",
   age: undefined,
@@ -128,6 +136,19 @@ export const useOnboardingStore = create<OnboardingStore>()(
     }),
     {
       name: "conecta-onboarding-store",
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as PersistedOnboardingState;
+
+        return {
+          ...currentState,
+          ...persisted,
+          data: {
+            ...currentState.data,
+            ...defaultData,
+            ...(persisted.data ?? {}),
+          },
+        };
+      },
       partialize: (state) => ({
         sessionId: state.sessionId,
         currentStep: state.currentStep,

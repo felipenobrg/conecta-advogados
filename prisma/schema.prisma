@@ -12,33 +12,33 @@ datasource db {
 }
 
 model User {
-  id               String        @id @default(uuid())
-  email            String        @unique
+  id               String         @id @default(uuid())
+  email            String         @unique
   name             String
   phone            String
-  whatsappVerified Boolean       @default(false)
-  role             Role          @default(CLIENT)
-  plan             Plan          @default(START)
+  whatsappVerified Boolean        @default(false)
+  role             Role           @default(CLIENT)
+  plan             Plan           @default(START)
   planExpiresAt    DateTime?
-  createdAt        DateTime      @default(now())
-  clientLeads      Lead[]        @relation("ClientLeads")
+  createdAt        DateTime       @default(now())
+  clientLeads      Lead[]         @relation("ClientLeads")
   leads            LeadUnlock[]
   subscription     Subscription?
   lawyerProfile    LawyerProfile?
 }
 
 model LawyerProfile {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  officeName   String
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  officeName    String
   officeLogoUrl String?
-  oabNumber    String
-  oabState     String
-  age          Int
-  gender       String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oabNumber     String
+  oabState      String
+  age           Int
+  gender        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([oabNumber, oabState])
   @@index([userId])

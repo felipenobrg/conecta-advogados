@@ -3,6 +3,9 @@ import { z } from "zod";
 import { getPaymentProvider } from "@/lib/payment";
 import { requireAppUser } from "@/lib/auth/requireAppUser";
 
+const checkoutThrottleMs = 60 * 1000;
+const checkoutAttemptCache = new Map<string, number>();
+
 const payloadSchema = z.object({
   planId: z.enum(["PRO", "PREMIUM"]),
 });
@@ -14,6 +17,28 @@ export async function POST(request: Request) {
   }
 
   try {
+    const lastAttemptAt = checkoutAttemptCache.get(auth.user.id) ?? 0;
+    const now = Date.now();
+
+    if (now - lastAttemptAt < checkoutThrottleMs) {
+      const retryAfterSeconds = Math.ceil((checkoutThrottleMs - (now - lastAttemptAt)) / 1000);
+      return NextResponse.json(
+        {
+          success: false,
+          code: "CHECKOUT_RATE_LIMIT",
+          message: `Aguarde ${retryAfterSeconds}s para iniciar um novo checkout.`,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfterSeconds),
+          },
+        }
+      );
+    }
+
+    checkoutAttemptCache.set(auth.user.id, now);
+
     const body = await request.json();
     const payload = payloadSchema.parse(body);
 

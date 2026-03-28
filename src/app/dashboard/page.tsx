@@ -106,6 +106,7 @@ export default function DashboardPage() {
     const [billingMessage, setBillingMessage] = useState("");
     const [pendingPaidPlan, setPendingPaidPlan] = useState<PendingPaidPlan | null>(null);
     const [isStartingCheckout, setIsStartingCheckout] = useState(false);
+    const [hasAutoCheckoutAttempt, setHasAutoCheckoutAttempt] = useState(false);
     const [savingLeadId, setSavingLeadId] = useState<string | null>(null);
 
     const [area, setArea] = useState("");
@@ -140,6 +141,7 @@ export default function DashboardPage() {
                 if (response.status === 402 && payload?.code === "PAYMENT_REQUIRED") {
                     const pendingPlan = payload.subscription?.plan;
                     setPendingPaidPlan(isPendingPaidPlan(pendingPlan) ? pendingPlan : null);
+                    setHasAutoCheckoutAttempt(false);
                     setBillingMessage(payload.message ?? "Seu pagamento ainda nao foi confirmado.");
                     setPayload(null);
                     return;
@@ -181,6 +183,7 @@ export default function DashboardPage() {
                 if (response.status === 402 && payload?.code === "PAYMENT_REQUIRED") {
                     const pendingPlan = payload.subscription?.plan;
                     setPendingPaidPlan(isPendingPaidPlan(pendingPlan) ? pendingPlan : null);
+                    setHasAutoCheckoutAttempt(false);
                     setLeadsError(payload.message ?? "Finalize o pagamento para liberar os leads.");
                     setLeadsPayload(null);
                     return;
@@ -325,6 +328,21 @@ export default function DashboardPage() {
             setIsStartingCheckout(false);
         }
     }, [pendingPaidPlan]);
+
+    useEffect(() => {
+        if (!pendingPaidPlan || hasAutoCheckoutAttempt || isStartingCheckout) {
+            return;
+        }
+
+        const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
+        if (checkoutStatus === "canceled") {
+            return;
+        }
+
+        setHasAutoCheckoutAttempt(true);
+        setBillingMessage("Redirecionando para concluir seu pagamento...");
+        void startCheckout();
+    }, [hasAutoCheckoutAttempt, isStartingCheckout, pendingPaidPlan, startCheckout]);
 
     return (
         <AppShell title="Dashboard" className="pb-10">

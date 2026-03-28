@@ -1,10 +1,14 @@
 import crypto from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
 
-const otpStore = new Map<string, { codeHash: string; expiresAt: number }>();
+const OTP_EXPIRATION_MINUTES = 5;
+const OTP_RATE_LIMIT_WINDOW_MINUTES = 15;
+const OTP_RATE_LIMIT_MAX_REQUESTS = 3;
 
 export class OtpSendError extends Error {
   readonly reason:
     | "CONFIG_MISSING"
+    | "RATE_LIMITED"
     | "PROVIDER_REJECTED"
     | "NETWORK_FAILURE"
     | "UNKNOWN";
@@ -29,6 +33,12 @@ type TwilioMessageResponse = {
   sid?: string;
   message?: string;
   code?: number;
+};
+
+type OtpSessionRow = {
+  id: string;
+  code_hash: string;
+  expires_at: string;
 };
 
 export function generateOtpCode() {
@@ -67,6 +77,80 @@ function ensureTwilioConfig() {
 
 function normalizePhone(phone: string) {
   return phone.replace(/\s+/g, "").replace(/[()\-]/g, "");
+}
+
+function getSupabaseServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new OtpSendError(
+      "CONFIG_MISSING",
+      "Supabase nao configurado para persistencia de OTP.",
+      503
+    );
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+export async function enforceOtpRateLimit(phone: string, requesterIp?: string) {
+  const supabase = getSupabaseServiceClient();
+  const normalizedPhone = normalizePhone(phone);
+  const threshold = new Date(Date.now() - OTP_RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString();
+
+  const { count: phoneCount, error: phoneError } = await supabase
+    .from("otp_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("phone", normalizedPhone)
+    .gte("created_at", threshold);
+
+  if (phoneError) {
+    throw new OtpSendError(
+      "UNKNOWN",
+      "Falha ao verificar limite de envio OTP por telefone.",
+      500,
+      phoneError.message
+    );
+  }
+
+  if ((phoneCount ?? 0) >= OTP_RATE_LIMIT_MAX_REQUESTS) {
+    throw new OtpSendError(
+      "RATE_LIMITED",
+      "Voce atingiu o limite de envio de codigo. Tente novamente em alguns minutos.",
+      429
+    );
+  }
+
+  if (!requesterIp) {
+    return;
+  }
+
+  const { count: ipCount, error: ipError } = await supabase
+    .from("otp_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("requester_ip", requesterIp)
+    .gte("created_at", threshold);
+
+  if (ipError) {
+    throw new OtpSendError(
+      "UNKNOWN",
+      "Falha ao verificar limite de envio OTP por IP.",
+      500,
+      ipError.message
+    );
+  }
+
+  if ((ipCount ?? 0) >= OTP_RATE_LIMIT_MAX_REQUESTS * 3) {
+    throw new OtpSendError(
+      "RATE_LIMITED",
+      "Muitas solicitacoes de OTP deste IP. Aguarde alguns minutos para tentar novamente.",
+      429
+    );
+  }
 }
 
 export async function sendOtpToWhatsapp(phone: string, code: string) {
@@ -152,25 +236,61 @@ export async function sendOtpToWhatsapp(phone: string, code: string) {
   }
 }
 
-export function saveOtp(phone: string, code: string) {
-  otpStore.set(phone, {
-    codeHash: hashOtp(code),
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  });
+export async function saveOtp(phone: string, code: string, requesterIp?: string) {
+  const supabase = getSupabaseServiceClient();
+  const normalizedPhone = normalizePhone(phone);
+
+  const payload = {
+    phone: normalizedPhone,
+    code_hash: hashOtp(code),
+    expires_at: new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000).toISOString(),
+    requester_ip: requesterIp ?? null,
+  };
+
+  const { error } = await supabase.from("otp_sessions").insert(payload);
+  if (error) {
+    throw new OtpSendError(
+      "UNKNOWN",
+      "Falha ao persistir OTP para validacao.",
+      500,
+      error.message
+    );
+  }
 }
 
-export function validateOtp(phone: string, code: string) {
-  const current = otpStore.get(phone);
-  if (!current) return false;
-  if (current.expiresAt < Date.now()) {
-    otpStore.delete(phone);
+export async function validateOtp(phone: string, code: string) {
+  const supabase = getSupabaseServiceClient();
+  const normalizedPhone = normalizePhone(phone);
+  const nowIso = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("otp_sessions")
+    .select("id, code_hash, expires_at")
+    .eq("phone", normalizedPhone)
+    .is("consumed_at", null)
+    .gte("expires_at", nowIso)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .returns<OtpSessionRow[]>();
+
+  if (error || !data || data.length === 0) {
     return false;
   }
 
-  const valid = current.codeHash === hashOtp(code);
-  if (valid) {
-    otpStore.delete(phone);
+  const current = data[0];
+  const valid = current.code_hash === hashOtp(code);
+  if (!valid) {
+    return false;
   }
 
-  return valid;
+  const { error: consumeError } = await supabase
+    .from("otp_sessions")
+    .update({ consumed_at: nowIso })
+    .eq("id", current.id);
+
+  if (consumeError) {
+    return false;
+  }
+
+  return true;
 }

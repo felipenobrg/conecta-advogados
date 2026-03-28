@@ -111,6 +111,21 @@ create table if not exists public.onboarding_steps (
   primary key (session_id, step)
 );
 
+-- OTP persistence for multi-instance validation and rate limiting.
+create table if not exists public.otp_sessions (
+  id text primary key default gen_random_uuid()::text,
+  phone text not null,
+  code_hash text not null,
+  requester_ip text,
+  expires_at timestamptz not null,
+  consumed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists otp_sessions_phone_created_idx on public.otp_sessions (phone, created_at desc);
+create index if not exists otp_sessions_ip_created_idx on public.otp_sessions (requester_ip, created_at desc);
+create index if not exists otp_sessions_active_idx on public.otp_sessions (phone, expires_at) where consumed_at is null;
+
 -- Optional helper table for tracking unlock policy events
 create table if not exists public.unlock_policy_audit (
   id bigserial primary key,

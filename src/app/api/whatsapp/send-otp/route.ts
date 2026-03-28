@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { OtpSendError, generateOtpCode, saveOtp, sendOtpToWhatsapp } from "@/lib/twilioOtp";
+import {
+  OtpSendError,
+  enforceOtpRateLimit,
+  generateOtpCode,
+  saveOtp,
+  sendOtpToWhatsapp,
+} from "@/lib/twilioOtp";
 
 const requestSchema = z.object({
   phone: z
@@ -13,10 +19,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { phone } = requestSchema.parse(body);
+    const requesterIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+
+    await enforceOtpRateLimit(phone, requesterIp);
 
     const code = generateOtpCode();
     const delivery = await sendOtpToWhatsapp(phone, code);
-    saveOtp(phone, code);
+    await saveOtp(phone, code, requesterIp);
 
     return NextResponse.json({
       success: true,
@@ -44,6 +53,17 @@ export async function POST(request: Request) {
           {
             success: false,
             message: "Servico de OTP nao configurado. Verifique as credenciais da Twilio.",
+            code: error.reason,
+          },
+          { status: error.statusCode }
+        );
+      }
+
+      if (error.reason === "RATE_LIMITED") {
+        return NextResponse.json(
+          {
+            success: false,
+            message: error.message,
             code: error.reason,
           },
           { status: error.statusCode }

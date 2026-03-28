@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+const optionalUrl = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  },
+  z.string().url().optional()
+);
+
 const completeOnboardingPayloadSchema = z
   .object({
     sessionId: z.string().min(10),
@@ -13,7 +22,7 @@ const completeOnboardingPayloadSchema = z
     consentAccepted: z.boolean(),
     role: z.enum(["LAWYER", "CLIENT"]),
     officeName: z.string().min(2).optional(),
-    officeLogoUrl: z.string().url().optional(),
+    officeLogoUrl: optionalUrl,
     oabNumber: z.string().min(4).max(12).optional(),
     oabState: z.string().length(2).optional(),
     clientLegalArea: z.string().optional(),
@@ -80,8 +89,25 @@ export async function completeOnboarding(payload: CompleteOnboardingPayload) {
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Nao foi possivel concluir o onboarding.");
+    const fallbackMessage = "Nao foi possivel concluir o onboarding.";
+    const errorPayload = (await response.json().catch(() => null)) as
+      | {
+          message?: string;
+          issues?: Array<{ path?: Array<string | number>; message?: string }>;
+        }
+      | null;
+
+    const issues = errorPayload?.issues
+      ?.map((issue) => {
+        const field = issue.path?.length ? String(issue.path[issue.path.length - 1]) : "";
+        if (field && issue.message) return `${field}: ${issue.message}`;
+        return issue.message;
+      })
+      .filter(Boolean)
+      .join(" | ");
+
+    const message = [errorPayload?.message, issues].filter(Boolean).join(" - ") || fallbackMessage;
+    throw new Error(message);
   }
 
   return response.json() as Promise<{

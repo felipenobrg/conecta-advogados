@@ -154,7 +154,7 @@ export default function AuthPage() {
             <section className="mx-auto w-full max-w-md rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur">
                 <h1 className="text-2xl font-bold">Minha Conta</h1>
                 <p className="mt-2 text-sm text-zinc-200">
-                     Novos usuarios devem se cadastrar apenas pelo onboarding.
+                    Novos usuarios devem se cadastrar apenas pelo onboarding.
                 </p>
 
                 <form onSubmit={onSubmit} className="mt-5 space-y-3">

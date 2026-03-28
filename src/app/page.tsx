@@ -49,10 +49,10 @@ export default function Home() {
                     href="/onboarding?role=CLIENT"
                     className="inline-flex h-12 items-center justify-center rounded-full bg-[#ff4029] text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#e13822]"
                   >
-                    Sou cliente
+                    Quero um advogado
                   </Link>
                   <Link
-                    href="/onboarding?role=LAWYER&entry=leads"
+                    href="/advogados"
                     className="inline-flex h-12 items-center justify-center rounded-full bg-[#ff4029] text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#e13822]"
                   >
                     Sou advogado

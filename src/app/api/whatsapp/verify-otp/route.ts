@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { phone, code } = requestSchema.parse(body);
 
-    const valid = validateOtp(phone, code);
+    const valid = await validateOtp(phone, code);
     if (!valid) {
       return NextResponse.json(
         {
