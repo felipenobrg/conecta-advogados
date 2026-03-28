@@ -76,8 +76,8 @@ Criar um fluxo de onboarding conversacional em `/onboarding` com as seguintes et
    - Validação de WhatsApp: enviar código OTP via API
 
 4. **Escolha do plano** (apenas para advogados)
-   - Cards dos planos: Start / Pro / Primum
-   - Design: cards lado a lado com destaque no Primum
+   - Cards dos planos: Start / Pro / Premium
+   - Design: cards lado a lado com destaque no Premium
 
 5. **Área de atuação** (apenas para advogados)
    - Chips selecionáveis: Direito Civil, Trabalhista, Criminal, Família, Tributário, etc.
@@ -171,14 +171,14 @@ model Subscription {
 }
 
 enum Role { CLIENT LAWYER ADMIN }
-enum Plan { START PRO PRIMUM }
+enum Plan { START PRO PREMIUM }
 enum LeadStatus { PENDING CONTACTED CONVERTED LOST }
 enum SubStatus { ACTIVE CANCELED PAST_DUE }
 ```
 
 ---
 
-## 📊 DASHBOARD (Plano Primum)
+## 📊 DASHBOARD (Plano Premium)
 
 Página `/dashboard` com os seguintes widgets:
 - Total de leads recebidos (card com número + trend)

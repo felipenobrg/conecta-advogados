@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAppUser, type AppPlan, type AppRole } from "@/lib/auth/requireAppUser";
+import { requireLawyerPayment } from "@/lib/auth/requireLawyerPayment";
 
 export async function requirePlan(
   allowedPlans: AppPlan[],
@@ -17,6 +18,14 @@ export async function requirePlan(
 
   if (auth.user.role === "ADMIN") {
     return auth;
+  }
+
+  const paymentGate = requireLawyerPayment(auth.user);
+  if (paymentGate) {
+    return {
+      ok: false as const,
+      response: paymentGate,
+    };
   }
 
   if (!allowedPlans.includes(auth.user.plan)) {

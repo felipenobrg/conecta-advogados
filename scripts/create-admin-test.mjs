@@ -44,7 +44,7 @@ const userRow = await supabase
             phone: "+5511999999999",
             whatsappVerified: true,
             role: "ADMIN",
-            plan: "PRIMUM",
+            plan: "PREMIUM",
         },
         { onConflict: "email" }
     )

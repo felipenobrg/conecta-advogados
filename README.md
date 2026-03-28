@@ -36,7 +36,7 @@ npm run dev
 
 - `/` landing page
 - `/onboarding` fluxo conversacional mobile-first
-- `/dashboard` dashboard essencial do plano Primum
+- `/dashboard` dashboard essencial do plano Premium
 - `/admin` area administrativa essencial
 
 ## Implementado neste inicio

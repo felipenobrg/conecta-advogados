@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { getPaymentProvider } from "@/lib/payment";
 import { prisma } from "@/lib/db/prisma";
 
-function isSupportedPlan(plan: unknown): plan is "START" | "PRO" | "PRIMUM" {
-  return plan === "START" || plan === "PRO" || plan === "PRIMUM";
+function isSupportedPlan(plan: unknown): plan is "START" | "PRO" | "PREMIUM" {
+  return plan === "START" || plan === "PRO" || plan === "PREMIUM";
 }
 
 async function downgradeUserToStartBySubscriptionId(subscriptionId: string) {

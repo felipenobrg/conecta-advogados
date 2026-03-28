@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 
 const payloadSchema = z.object({
-  plan: z.enum(["START", "PRO", "PRIMUM"]),
+  plan: z.enum(["START", "PRO", "PREMIUM"]),
 });
 
 export async function PATCH(

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAppUser } from "@/lib/auth/requireAppUser";
+import { requireLawyerPayment } from "@/lib/auth/requireLawyerPayment";
 
 const requestSchema = z.object({
   status: z.enum(["PENDING", "CONTACTED", "CONVERTED", "LOST"]),
@@ -15,6 +16,11 @@ export async function PATCH(
     const auth = await requireAppUser(["LAWYER", "ADMIN"]);
     if (!auth.ok) {
       return auth.response;
+    }
+
+    const paymentGate = requireLawyerPayment(auth.user);
+    if (paymentGate) {
+      return paymentGate;
     }
 
     const { leadId } = await context.params;

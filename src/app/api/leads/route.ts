@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAppUser } from "@/lib/auth/requireAppUser";
+import { requireLawyerPayment } from "@/lib/auth/requireLawyerPayment";
 
 type AllowedLeadStatus = "PENDING" | "CONTACTED" | "CONVERTED" | "LOST";
 
@@ -27,6 +28,11 @@ export async function GET(request: Request) {
     const auth = await requireAppUser(["LAWYER", "ADMIN", "CLIENT"]);
     if (!auth.ok) {
       return auth.response;
+    }
+
+    const paymentGate = requireLawyerPayment(auth.user);
+    if (paymentGate) {
+      return paymentGate;
     }
 
     const { searchParams } = new URL(request.url);

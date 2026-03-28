@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAppUser } from "@/lib/auth/requireAppUser";
+import { requireLawyerPayment } from "@/lib/auth/requireLawyerPayment";
 
 const requestSchema = z.object({
   leadId: z.string().uuid(),
@@ -12,7 +13,7 @@ function hoursToMilliseconds(hours: number) {
   return hours * 60 * 60 * 1000;
 }
 
-function getUnlockMaxByPlan(plan: "START" | "PRO" | "PRIMUM", role: "CLIENT" | "LAWYER" | "ADMIN") {
+function getUnlockMaxByPlan(plan: "START" | "PRO" | "PREMIUM", role: "CLIENT" | "LAWYER" | "ADMIN") {
   if (role === "ADMIN") {
     return Number.POSITIVE_INFINITY;
   }
@@ -27,8 +28,8 @@ function getUnlockMaxByPlan(plan: "START" | "PRO" | "PRIMUM", role: "CLIENT" | "
     return Number.isFinite(proLimit) ? Math.max(0, Math.floor(proLimit)) : Number.POSITIVE_INFINITY;
   }
 
-  const primumLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PRIMUM ?? Number.POSITIVE_INFINITY);
-  return Number.isFinite(primumLimit) ? Math.max(0, Math.floor(primumLimit)) : Number.POSITIVE_INFINITY;
+  const premiumLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PREMIUM ?? Number.POSITIVE_INFINITY);
+  return Number.isFinite(premiumLimit) ? Math.max(0, Math.floor(premiumLimit)) : Number.POSITIVE_INFINITY;
 }
 
 export async function POST(request: Request) {
@@ -36,6 +37,11 @@ export async function POST(request: Request) {
     const auth = await requireAppUser(["LAWYER", "ADMIN"]);
     if (!auth.ok) {
       return auth.response;
+    }
+
+    const paymentGate = requireLawyerPayment(auth.user);
+    if (paymentGate) {
+      return paymentGate;
     }
 
     const body = await request.json();

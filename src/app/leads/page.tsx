@@ -25,6 +25,17 @@ type LeadsPayload = {
     leads: LeadRow[];
 };
 
+type PendingPaidPlan = "PRO" | "PREMIUM";
+
+type PaymentRequiredPayload = {
+    code?: string;
+    message?: string;
+    subscription?: {
+        plan?: string;
+        status?: string;
+    } | null;
+};
+
 const statusOptions: Array<{ label: string; value: "" | LeadStatus }> = [
     { label: "Todos", value: "" },
     { label: "Pendente", value: "PENDING" },
@@ -48,10 +59,16 @@ function statusBadgeClass(status: LeadStatus) {
     return "border-amber-300/30 bg-amber-400/10 text-amber-200";
 }
 
+function isPendingPaidPlan(input: unknown): input is PendingPaidPlan {
+    return input === "PRO" || input === "PREMIUM";
+}
+
 export default function LeadsPage() {
     const [payload, setPayload] = useState<LeadsPayload | null>(null);
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const [pendingPaidPlan, setPendingPaidPlan] = useState<PendingPaidPlan | null>(null);
+    const [isStartingCheckout, setIsStartingCheckout] = useState(false);
 
     const [area, setArea] = useState("");
     const [state, setState] = useState("");
@@ -77,10 +94,19 @@ export default function LeadsPage() {
             });
 
             if (!response.ok) {
+                const payload = (await response.json().catch(() => null)) as PaymentRequiredPayload | null;
+                if (response.status === 402 && payload?.code === "PAYMENT_REQUIRED") {
+                    const pendingPlan = payload.subscription?.plan;
+                    setPendingPaidPlan(isPendingPaidPlan(pendingPlan) ? pendingPlan : null);
+                    setErrorMessage(payload.message ?? "Finalize o pagamento para liberar os leads.");
+                    setPayload(null);
+                    return;
+                }
                 throw new Error("Falha ao carregar leads.");
             }
 
             const json = await response.json();
+            setPendingPaidPlan(null);
             setPayload(json as LeadsPayload);
         } catch {
             setErrorMessage("Não foi possível carregar os leads no momento.");
@@ -93,6 +119,37 @@ export default function LeadsPage() {
     useEffect(() => {
         void loadLeads();
     }, [loadLeads]);
+
+    async function handleCheckout() {
+        if (!pendingPaidPlan) return;
+
+        setIsStartingCheckout(true);
+        try {
+            const response = await fetch("/api/payment/checkout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ planId: pendingPaidPlan }),
+            });
+
+            const payload = (await response.json().catch(() => ({}))) as {
+                success?: boolean;
+                url?: string;
+                message?: string;
+            };
+
+            if (!response.ok || !payload.success || !payload.url) {
+                throw new Error(payload.message ?? "Nao foi possivel iniciar checkout.");
+            }
+
+            window.location.assign(payload.url);
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : "Erro ao iniciar checkout.");
+        } finally {
+            setIsStartingCheckout(false);
+        }
+    }
 
     return (
         <AppShell title="Leads" className="pb-10">
@@ -156,6 +213,20 @@ export default function LeadsPage() {
                         <p className="mt-3 rounded-xl border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">
                             {errorMessage}
                         </p>
+                    )}
+
+                    {pendingPaidPlan && (
+                        <div className="mt-3 rounded-xl border border-amber-300/30 bg-amber-400/10 px-3 py-3 text-sm text-amber-100">
+                            <p>Seu plano {pendingPaidPlan} esta pendente de pagamento.</p>
+                            <button
+                                type="button"
+                                onClick={() => void handleCheckout()}
+                                disabled={isStartingCheckout}
+                                className="mt-3 inline-flex h-10 items-center rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#c73d22] disabled:opacity-60"
+                            >
+                                {isStartingCheckout ? "Abrindo checkout..." : "Concluir pagamento"}
+                            </button>
+                        </div>
                     )}
 
                     {loading && (

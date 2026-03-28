@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { MainHeader } from "@/components/navigation/MainHeader";
@@ -32,6 +32,7 @@ function setRoleCookie(role: AppRole) {
 
 export default function AuthPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -39,6 +40,8 @@ export default function AuthPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isMagicLoading, setIsMagicLoading] = useState(false);
 
+    const requestedRole = normalizeRole(searchParams.get("role"));
+    const roleLabel = requestedRole === "LAWYER" ? "advogado" : "cliente";
     const displayMessage = message;
 
     function applyRoleAndRedirect(role: AppRole) {
@@ -120,7 +123,7 @@ export default function AuthPage() {
             email,
             options: {
                 emailRedirectTo,
-                shouldCreateUser: false,
+                shouldCreateUser: true,
             },
         });
 
@@ -151,7 +154,7 @@ export default function AuthPage() {
             <section className="mx-auto w-full max-w-md rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur">
                 <h1 className="text-2xl font-bold">Minha Conta</h1>
                 <p className="mt-2 text-sm text-zinc-200">
-                    Entre para acessar sua conta. Novos usuarios devem se cadastrar apenas pelo onboarding.
+                     Novos usuarios devem se cadastrar apenas pelo onboarding.
                 </p>
 
                 <form onSubmit={onSubmit} className="mt-5 space-y-3">

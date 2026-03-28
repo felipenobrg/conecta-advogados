@@ -46,6 +46,17 @@ type LeadsPayload = {
     leads: LeadRow[];
 };
 
+type PendingPaidPlan = "PRO" | "PREMIUM";
+
+type PaymentRequiredPayload = {
+    code?: string;
+    message?: string;
+    subscription?: {
+        plan?: string;
+        status?: string;
+    } | null;
+};
+
 const statusOptions: Array<{ label: string; value: "" | LeadStatus }> = [
     { label: "Todos", value: "" },
     { label: "Pendente", value: "PENDING" },
@@ -73,6 +84,10 @@ function formatDate(input: string) {
     }).format(new Date(input));
 }
 
+function isPendingPaidPlan(input: unknown): input is PendingPaidPlan {
+    return input === "PRO" || input === "PREMIUM";
+}
+
 export default function DashboardPage() {
     const [fromDate, setFromDate] = useState(() => {
         const date = new Date();
@@ -89,6 +104,8 @@ export default function DashboardPage() {
     const [leadsError, setLeadsError] = useState("");
     const [actionMessage, setActionMessage] = useState("");
     const [billingMessage, setBillingMessage] = useState("");
+    const [pendingPaidPlan, setPendingPaidPlan] = useState<PendingPaidPlan | null>(null);
+    const [isStartingCheckout, setIsStartingCheckout] = useState(false);
     const [savingLeadId, setSavingLeadId] = useState<string | null>(null);
 
     const [area, setArea] = useState("");
@@ -119,10 +136,19 @@ export default function DashboardPage() {
             });
 
             if (!response.ok) {
+                const payload = (await response.json().catch(() => null)) as PaymentRequiredPayload | null;
+                if (response.status === 402 && payload?.code === "PAYMENT_REQUIRED") {
+                    const pendingPlan = payload.subscription?.plan;
+                    setPendingPaidPlan(isPendingPaidPlan(pendingPlan) ? pendingPlan : null);
+                    setBillingMessage(payload.message ?? "Seu pagamento ainda nao foi confirmado.");
+                    setPayload(null);
+                    return;
+                }
                 throw new Error("Falha ao carregar dashboard.");
             }
 
             const json = await response.json();
+            setPendingPaidPlan(null);
             setPayload(json as DashboardPayload);
         } catch {
             setErrorMessage("Não foi possível carregar os dados reais do dashboard.");
@@ -151,11 +177,20 @@ export default function DashboardPage() {
             });
 
             if (!response.ok) {
+                const payload = (await response.json().catch(() => null)) as PaymentRequiredPayload | null;
+                if (response.status === 402 && payload?.code === "PAYMENT_REQUIRED") {
+                    const pendingPlan = payload.subscription?.plan;
+                    setPendingPaidPlan(isPendingPaidPlan(pendingPlan) ? pendingPlan : null);
+                    setLeadsError(payload.message ?? "Finalize o pagamento para liberar os leads.");
+                    setLeadsPayload(null);
+                    return;
+                }
                 throw new Error("Falha ao carregar CRM.");
             }
 
             const json = await response.json();
             const normalized = json as LeadsPayload;
+            setPendingPaidPlan(null);
             setLeadsPayload(normalized);
             setDraftStatus(
                 normalized.leads.reduce<Record<string, LeadStatus>>((acc, lead) => {
@@ -257,6 +292,40 @@ export default function DashboardPage() {
         void checkSubscription();
     }, [loadDashboard]);
 
+    const startCheckout = useCallback(async () => {
+        if (!pendingPaidPlan) {
+            return;
+        }
+
+        setIsStartingCheckout(true);
+
+        try {
+            const response = await fetch("/api/payment/checkout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ planId: pendingPaidPlan }),
+            });
+
+            const payload = (await response.json().catch(() => ({}))) as {
+                success?: boolean;
+                url?: string;
+                message?: string;
+            };
+
+            if (!response.ok || !payload.success || !payload.url) {
+                throw new Error(payload.message ?? "Nao foi possivel iniciar checkout.");
+            }
+
+            window.location.assign(payload.url);
+        } catch (error) {
+            setBillingMessage(error instanceof Error ? error.message : "Erro ao iniciar checkout.");
+        } finally {
+            setIsStartingCheckout(false);
+        }
+    }, [pendingPaidPlan]);
+
     return (
         <AppShell title="Dashboard" className="pb-10">
             <section className="mx-auto max-w-7xl space-y-5">
@@ -303,6 +372,20 @@ export default function DashboardPage() {
                     <p className="rounded-xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
                         {billingMessage}
                     </p>
+                )}
+
+                {pendingPaidPlan && (
+                    <div className="rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                        <p>Seu plano {pendingPaidPlan} esta pendente de pagamento.</p>
+                        <button
+                            type="button"
+                            onClick={() => void startCheckout()}
+                            disabled={isStartingCheckout}
+                            className="mt-3 inline-flex h-10 items-center rounded-full bg-[#e8472a] px-4 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#c73d22] disabled:opacity-60"
+                        >
+                            {isStartingCheckout ? "Abrindo checkout..." : "Concluir pagamento"}
+                        </button>
+                    </div>
                 )}
 
                 {loading && (

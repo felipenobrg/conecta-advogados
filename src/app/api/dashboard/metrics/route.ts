@@ -25,9 +25,9 @@ function normalizeDateRange(from: string | null, to: string | null) {
 
 export async function GET(request: Request) {
   try {
-    const auth = await requirePlan(["PRIMUM"], {
+    const auth = await requirePlan(["PREMIUM"], {
       allowedRoles: ["LAWYER", "ADMIN"],
-      message: "Dashboard premium disponivel apenas no plano Primum.",
+      message: "Dashboard premium disponivel apenas no plano Premium.",
     });
 
     if (!auth.ok) {

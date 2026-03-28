@@ -4,7 +4,7 @@ import { getPaymentProvider } from "@/lib/payment";
 import { requireAppUser } from "@/lib/auth/requireAppUser";
 
 const payloadSchema = z.object({
-  planId: z.enum(["PRO", "PRIMUM"]),
+  planId: z.enum(["PRO", "PREMIUM"]),
 });
 
 export async function POST(request: Request) {

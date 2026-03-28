@@ -1,5 +1,5 @@
 export type PlanConfig = {
-  id: "START" | "PRO" | "PRIMUM";
+  id: "START" | "PRO" | "PREMIUM";
   name: string;
   type: "one_time" | "recurring";
   amountInCents: number;
@@ -31,14 +31,14 @@ export const planCatalog: PlanConfig[] = [
     stripePriceIdEnvKey: "STRIPE_PRICE_PRO",
   },
   {
-    id: "PRIMUM",
-    name: "Primum",
+    id: "PREMIUM",
+    name: "Premium",
     type: "recurring",
-    amountInCents: Number(process.env.NEXT_PUBLIC_PLAN_PRIMUM_PRICE_CENTS ?? 0),
+    amountInCents: Number(process.env.NEXT_PUBLIC_PLAN_PREMIUM_PRICE_CENTS ?? 0),
     currency: "BRL",
     leadsLimit: "unlimited",
     features: ["Contatos ilimitados", "Dashboard premium"],
-    stripePriceIdEnvKey: "STRIPE_PRICE_PRIMUM",
+    stripePriceIdEnvKey: "STRIPE_PRICE_PREMIUM",
   },
 ];
 

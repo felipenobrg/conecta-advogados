@@ -9,7 +9,7 @@ const planPriceMap = new Map(
 
 function toFinancialHistory(input: {
   status: string;
-  plan: "START" | "PRO" | "PRIMUM";
+  plan: "START" | "PRO" | "PREMIUM";
   provider: string;
   createdAt: Date;
 }) {

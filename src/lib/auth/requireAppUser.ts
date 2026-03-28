@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AppRole = "CLIENT" | "LAWYER" | "ADMIN";
-export type AppPlan = "START" | "PRO" | "PRIMUM";
+export type AppPlan = "START" | "PRO" | "PREMIUM";
+export type AppSubStatus = "ACTIVE" | "CANCELED" | "PAST_DUE";
 
 export type RequireAppUserResult =
   | {
@@ -14,6 +15,10 @@ export type RequireAppUserResult =
         name: string;
         role: AppRole;
         plan: AppPlan;
+        subscription: {
+          status: AppSubStatus;
+          plan: AppPlan;
+        } | null;
       };
     }
   | {
@@ -44,6 +49,12 @@ export async function requireAppUser(allowedRoles?: AppRole[]): Promise<RequireA
         name: true,
         role: true,
         plan: true,
+        subscription: {
+          select: {
+            status: true,
+            plan: true,
+          },
+        },
       },
     });
 
@@ -75,6 +86,7 @@ export async function requireAppUser(allowedRoles?: AppRole[]): Promise<RequireA
         name: appUser.name,
         role: appUser.role,
         plan: appUser.plan,
+        subscription: appUser.subscription,
       },
     };
   } catch {

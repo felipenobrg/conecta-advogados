@@ -2,7 +2,7 @@ export type SubscriptionStatus = "ACTIVE" | "CANCELED" | "PAST_DUE" | "INCOMPLET
 
 export type CheckoutData = {
   userId: string;
-  planId: "START" | "PRO" | "PRIMUM";
+  planId: "START" | "PRO" | "PREMIUM";
   successUrl: string;
   cancelUrl: string;
   customerEmail?: string;

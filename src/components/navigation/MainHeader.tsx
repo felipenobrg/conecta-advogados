@@ -8,7 +8,7 @@ type MainHeaderProps = {
 };
 
 export function MainHeader({ className = "", variant = "dark", title }: MainHeaderProps) {
-    const onboardingClasses =
+    const clientAccountClasses =
         variant === "light"
             ? "border-slate-300/90 bg-white/70 text-slate-700 hover:bg-slate-100"
             : "border-[#3d2a5a] bg-[#231540]/90 text-white hover:bg-[#2d1b4e]";
@@ -41,19 +41,11 @@ export function MainHeader({ className = "", variant = "dark", title }: MainHead
                 </div>
 
                 <nav className="flex items-center gap-2 sm:gap-3">
-                    {variant === "app" ? null : (
-                        <Link
-                            href="/onboarding"
-                            className={`inline-flex h-10 items-center justify-center rounded-full border px-4 text-xs font-bold uppercase tracking-wide transition sm:px-5 sm:text-sm ${onboardingClasses}`}
-                        >
-                            Onboarding
-                        </Link>
-                    )}
                     <Link
-                        href="/auth"
+                        href="/auth?role=LAWYER"
                         className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-xs font-bold uppercase tracking-wide shadow-[0_10px_24px_-12px_rgba(232,71,42,0.95)] transition hover:bg-[#c73d22] sm:px-5 sm:text-sm ${accountClasses}`}
                     >
-                        Minha Conta
+                        Minha conta
                     </Link>
                 </nav>
             </div>

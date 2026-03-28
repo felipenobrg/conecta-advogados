@@ -21,7 +21,7 @@ import { Eye, LogOut, RefreshCcw, Save } from "lucide-react";
 import { AppShell } from "@/components/navigation/AppShell";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type Plan = "START" | "PRO" | "PRIMUM";
+type Plan = "START" | "PRO" | "PREMIUM";
 type SubStatus = "ACTIVE" | "CANCELED" | "PAST_DUE";
 
 type UserRow = {
@@ -97,7 +97,7 @@ type UserDetails = {
     }>;
 };
 
-const planOptions: Plan[] = ["START", "PRO", "PRIMUM"];
+const planOptions: Plan[] = ["START", "PRO", "PREMIUM"];
 const chartColors = ["#e8472a", "#f97316", "#38bdf8", "#2dd4bf", "#a78bfa"];
 
 function formatCurrency(amountInCents: number) {

@@ -24,6 +24,24 @@ model User {
   clientLeads      Lead[]        @relation("ClientLeads")
   leads            LeadUnlock[]
   subscription     Subscription?
+  lawyerProfile    LawyerProfile?
+}
+
+model LawyerProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  officeName   String
+  officeLogoUrl String?
+  oabNumber    String
+  oabState     String
+  age          Int
+  gender       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([oabNumber, oabState])
+  @@index([userId])
 }
 
 model Lead {
@@ -79,7 +97,7 @@ enum Role {
 enum Plan {
   START
   PRO
-  PRIMUM
+  PREMIUM
 }
 
 enum LeadStatus {

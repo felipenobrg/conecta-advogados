@@ -1,0 +1,10 @@
+<svg width="188" height="72" viewBox="0 0 188 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 26C28 14 44 14 50 26" stroke="#FF453A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M50 46C44 58 28 58 22 46" stroke="#FF453A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M64 26C70 14 86 14 92 26" stroke="#FF453A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M92 46C86 58 70 58 64 46" stroke="#FF453A" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="18" cy="36" r="6" fill="#FF453A"/>
+  <circle cx="96" cy="36" r="6" fill="#FF453A"/>
+  <text x="112" y="34" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="10" letter-spacing="2">CONECTA</text>
+  <text x="112" y="50" fill="#FF453A" font-family="Arial, sans-serif" font-size="10" letter-spacing="2">ADVOGADOS</text>
+</svg>

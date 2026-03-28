@@ -1,19 +1,120 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getPaymentProvider } from "@/lib/payment";
 
-const requestSchema = z.object({
-  sessionId: z.string().min(10),
-  fullName: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(8),
-  phoneVerified: z.boolean(),
-  consentAccepted: z.boolean(),
-  role: z.enum(["LAWYER", "CLIENT"]),
-  selectedPlan: z.enum(["START", "PRO", "PRIMUM"]).optional(),
-  practiceAreas: z.array(z.string()).default([]),
-});
+const requestSchema = z
+  .object({
+    sessionId: z.string().min(10),
+    fullName: z.string().min(2),
+    age: z.number().int().min(18).max(120).optional(),
+    gender: z.enum(["M", "F", "O"]).optional(),
+    email: z.string().email(),
+    phone: z.string().min(8),
+    password: z.string().min(6),
+    phoneVerified: z.boolean(),
+    consentAccepted: z.boolean(),
+    role: z.enum(["LAWYER", "CLIENT"]),
+    officeName: z.string().min(2).optional(),
+    officeLogoUrl: z.string().url().optional(),
+    oabNumber: z.string().min(4).max(12).optional(),
+    oabState: z.string().length(2).optional(),
+    clientLegalArea: z.string().optional(),
+    selectedPlan: z.enum(["START", "PRO", "PREMIUM"]).optional(),
+    practiceAreas: z.array(z.string()).default([]),
+  })
+  .superRefine((payload, ctx) => {
+    if (payload.role !== "LAWYER") {
+      return;
+    }
+
+    if (!payload.officeName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["officeName"],
+        message: "Nome do escritorio obrigatorio para advogado.",
+      });
+    }
+
+    if (!payload.oabNumber) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["oabNumber"],
+        message: "Numero da OAB obrigatorio para advogado.",
+      });
+    }
+
+    if (!payload.oabState) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["oabState"],
+        message: "Estado da OAB obrigatorio para advogado.",
+      });
+    }
+
+    if (!payload.age) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["age"],
+        message: "Idade obrigatoria para advogado.",
+      });
+    }
+
+    if (!payload.gender) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["gender"],
+        message: "Genero obrigatorio para advogado.",
+      });
+    }
+  });
+
+async function ensureSupabaseAuthUser(input: {
+  email: string;
+  password: string;
+  fullName: string;
+  role: "LAWYER" | "CLIENT";
+}) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new Error("Supabase nao configurado para criar usuario de autenticacao.");
+  }
+
+  const supabase = createClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { error } = await supabase.auth.admin.createUser({
+    email: input.email,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: {
+      name: input.fullName,
+      role: input.role,
+    },
+  });
+
+  if (!error) {
+    return { created: true };
+  }
+
+  const message = error.message.toLowerCase();
+  const alreadyRegistered =
+    message.includes("already") ||
+    message.includes("exists") ||
+    message.includes("registered") ||
+    message.includes("duplicate");
+
+  if (alreadyRegistered) {
+    return { created: false };
+  }
+
+  throw error;
+}
 
 export async function POST(request: Request) {
   try {
@@ -34,27 +135,61 @@ export async function POST(request: Request) {
       );
     }
 
+    const authUserResult = await ensureSupabaseAuthUser({
+      email: payload.email,
+      password: payload.password,
+      fullName: payload.fullName,
+      role: payload.role,
+    });
+
     const selectedPlan = payload.selectedPlan ?? "START";
-    const needsPayment = payload.role === "LAWYER" && (selectedPlan === "PRO" || selectedPlan === "PRIMUM");
+    const needsPayment = payload.role === "LAWYER" && (selectedPlan === "PRO" || selectedPlan === "PREMIUM");
     let checkoutUrl: string | null = null;
 
-    const user = await prisma.user.upsert({
-      where: { email: payload.email },
-      update: {
-        name: payload.fullName,
-        phone: payload.phone,
-        whatsappVerified: payload.phoneVerified,
-        role: payload.role,
-        plan: needsPayment ? "START" : selectedPlan,
-      },
-      create: {
-        email: payload.email,
-        name: payload.fullName,
-        phone: payload.phone,
-        whatsappVerified: payload.phoneVerified,
-        role: payload.role,
-        plan: needsPayment ? "START" : selectedPlan,
-      },
+    const user = await prisma.$transaction(async (transaction) => {
+      const createdUser = await transaction.user.upsert({
+        where: { email: payload.email },
+        update: {
+          name: payload.fullName,
+          phone: payload.phone,
+          whatsappVerified: payload.phoneVerified,
+          role: payload.role,
+          plan: needsPayment ? "START" : selectedPlan,
+        },
+        create: {
+          email: payload.email,
+          name: payload.fullName,
+          phone: payload.phone,
+          whatsappVerified: payload.phoneVerified,
+          role: payload.role,
+          plan: needsPayment ? "START" : selectedPlan,
+        },
+      });
+
+      if (payload.role === "LAWYER") {
+        await transaction.lawyerProfile.upsert({
+          where: { userId: createdUser.id },
+          update: {
+            officeName: payload.officeName!,
+            officeLogoUrl: payload.officeLogoUrl ?? null,
+            oabNumber: payload.oabNumber!,
+            oabState: payload.oabState!,
+            age: payload.age!,
+            gender: payload.gender!,
+          },
+          create: {
+            userId: createdUser.id,
+            officeName: payload.officeName!,
+            officeLogoUrl: payload.officeLogoUrl ?? null,
+            oabNumber: payload.oabNumber!,
+            oabState: payload.oabState!,
+            age: payload.age!,
+            gender: payload.gender!,
+          },
+        });
+      }
+
+      return createdUser;
     });
 
     if (payload.role === "LAWYER") {
@@ -111,6 +246,7 @@ export async function POST(request: Request) {
       nextPath: payload.role === "LAWYER" ? "/dashboard" : "/client/dashboard",
       paymentPending: needsPayment,
       checkoutUrl,
+      authUserCreated: authUserResult.created,
       sessionId: payload.sessionId,
       practiceAreasCount: payload.practiceAreas.length,
     });

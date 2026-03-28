@@ -28,7 +28,7 @@ begin
     '+5511999999999',
     true,
     'ADMIN',
-    'PRIMUM'
+    'PREMIUM'
   )
   on conflict ("email") do update
   set
@@ -36,7 +36,7 @@ begin
     "phone" = excluded."phone",
     "whatsappVerified" = true,
     "role" = 'ADMIN',
-    "plan" = 'PRIMUM';
+    "plan" = 'PREMIUM';
 
   -- Active subscription for admin test account
   insert into public."Subscription" (
@@ -46,12 +46,12 @@ begin
     'internal',
     'internal-admin-seed',
     'ACTIVE',
-    'PRIMUM'
+    'PREMIUM'
   )
   on conflict ("userId") do update
   set
     "status" = 'ACTIVE',
-    "plan" = 'PRIMUM',
+    "plan" = 'PREMIUM',
     "provider" = 'internal',
     "providerId" = 'internal-admin-seed';
 end
