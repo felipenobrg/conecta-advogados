@@ -5,6 +5,9 @@ import { requireAppUser } from "@/lib/auth/requireAppUser";
 import { requireLawyerPayment } from "@/lib/auth/requireLawyerPayment";
 
 type AllowedLeadStatus = "PENDING" | "CONTACTED" | "CONVERTED" | "LOST";
+type AllowedUrgency = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+type AllowedSortBy = "createdAt" | "updatedAt" | "urgency" | "status" | "area" | "state" | "city";
+type AllowedSortDir = "asc" | "desc";
 
 const createLeadSchema = z.object({
   name: z.string().min(2),
@@ -23,6 +26,90 @@ function parseStatus(input: string | null): AllowedLeadStatus | null {
   return null;
 }
 
+function parseUrgency(input: string | null): AllowedUrgency | null {
+  if (input === "LOW" || input === "MEDIUM" || input === "HIGH" || input === "URGENT") {
+    return input;
+  }
+
+  return null;
+}
+
+function parseSortBy(input: string | null): AllowedSortBy {
+  if (
+    input === "createdAt" ||
+    input === "updatedAt" ||
+    input === "urgency" ||
+    input === "status" ||
+    input === "area" ||
+    input === "state" ||
+    input === "city"
+  ) {
+    return input;
+  }
+
+  return "createdAt";
+}
+
+function parseSortDir(input: string | null): AllowedSortDir {
+  if (input === "asc" || input === "desc") {
+    return input;
+  }
+
+  return "desc";
+}
+
+function maskEmail(email: string) {
+  const [localPart, domainPart] = email.split("@");
+  if (!domainPart) {
+    return "***";
+  }
+
+  const first = localPart?.[0] ?? "*";
+  return `${first}***@${domainPart}`;
+}
+
+function maskPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 4) {
+    return "(**) *****-****";
+  }
+
+  return `(**) *****-${digits.slice(-4)}`;
+}
+
+function getUserUnlockQuotaByPlan(plan: "START" | "PRO" | "PREMIUM", role: "CLIENT" | "LAWYER" | "ADMIN") {
+  if (role === "ADMIN") {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  if (plan === "START") {
+    const startLimit = Number(process.env.LEAD_UNLOCK_LIMIT_START ?? 8);
+    return Number.isFinite(startLimit) ? Math.max(0, Math.floor(startLimit)) : 8;
+  }
+
+  if (plan === "PRO") {
+    const proLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PRO ?? 30);
+    return Number.isFinite(proLimit) ? Math.max(0, Math.floor(proLimit)) : Number.POSITIVE_INFINITY;
+  }
+
+  const premiumLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PREMIUM ?? 75);
+  return Number.isFinite(premiumLimit) ? Math.max(0, Math.floor(premiumLimit)) : Number.POSITIVE_INFINITY;
+}
+
+function getLeadOfficeCap() {
+  const defaultCap = 3;
+  const cap = Number(process.env.LEAD_UNLOCK_MAX_PER_LEAD ?? defaultCap);
+  return Number.isFinite(cap) ? Math.max(1, Math.floor(cap)) : defaultCap;
+}
+
+function getOrderBy(sortBy: AllowedSortBy, sortDir: AllowedSortDir) {
+  if (sortBy === "city") {
+    return [{ city: sortDir }, { createdAt: "desc" as const }];
+  }
+
+  return [{ [sortBy]: sortDir }, { createdAt: "desc" as const }];
+}
+
 export async function GET(request: Request) {
   try {
     const auth = await requireAppUser(["LAWYER", "ADMIN", "CLIENT"]);
@@ -38,7 +125,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const area = searchParams.get("area")?.trim() || "";
     const state = searchParams.get("state")?.trim() || "";
+    const city = searchParams.get("city")?.trim() || "";
+    const neighborhood = searchParams.get("neighborhood")?.trim() || "";
+    const search = searchParams.get("search")?.trim() || "";
     const status = parseStatus(searchParams.get("status")?.trim() || null);
+    const urgency = parseUrgency(searchParams.get("urgency")?.trim() || null);
+    const sortBy = parseSortBy(searchParams.get("sortBy")?.trim() || null);
+    const sortDir = parseSortDir(searchParams.get("sortDir")?.trim() || null);
     const pageRaw = Number(searchParams.get("page") ?? 1);
     const pageSizeRaw = Number(searchParams.get("pageSize") ?? 10);
 
@@ -64,7 +157,66 @@ export async function GET(request: Request) {
             },
           }
         : {}),
+      ...(city
+        ? {
+            city: {
+              contains: city,
+              mode: "insensitive" as const,
+            },
+          }
+        : {}),
+      ...(neighborhood
+        ? {
+            neighborhood: {
+              contains: neighborhood,
+              mode: "insensitive" as const,
+            },
+          }
+        : {}),
       ...(status ? { status } : {}),
+      ...(urgency ? { urgency } : {}),
+      ...(search
+        ? {
+            OR: [
+              {
+                name: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                email: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                phone: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                area: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                city: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                neighborhood: {
+                  contains: search,
+                  mode: "insensitive" as const,
+                },
+              },
+            ],
+          }
+        : {}),
     };
 
     const where =
@@ -75,22 +227,33 @@ export async function GET(request: Request) {
             ...baseWhere,
             clientId: auth.user.id,
           }
-        : {
-            ...baseWhere,
-            unlocks: {
-              some: {
-                userId: auth.user.id,
-              },
-            },
-          };
+        : baseWhere;
 
-    const [total, leads] = await Promise.all([
+    const isLawyer = auth.user.role === "LAWYER";
+    const userUnlockQuota = isLawyer
+      ? getUserUnlockQuotaByPlan(auth.user.plan, auth.user.role)
+      : Number.POSITIVE_INFINITY;
+    const leadOfficeCap = getLeadOfficeCap();
+
+    const [userUnlockCount, total, groupedByStatus, leads] = await Promise.all([
+      isLawyer
+        ? prisma.leadUnlock.count({
+            where: {
+              userId: auth.user.id,
+            },
+          })
+        : Promise.resolve(0),
       prisma.lead.count({ where }),
+      prisma.lead.groupBy({
+        by: ["status"],
+        where,
+        _count: {
+          _all: true,
+        },
+      }),
       prisma.lead.findMany({
         where,
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: getOrderBy(sortBy, sortDir),
         skip: (page - 1) * pageSize,
         take: pageSize,
         select: {
@@ -101,8 +264,22 @@ export async function GET(request: Request) {
           phone: true,
           area: true,
           state: true,
+          city: true,
+          neighborhood: true,
+          urgency: true,
+          gender: true,
+          updatedAt: true,
           status: true,
           createdAt: true,
+          unlocks: {
+            where: {
+              userId: auth.user.id,
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
           _count: {
             select: {
               unlocks: true,
@@ -112,28 +289,95 @@ export async function GET(request: Request) {
       }),
     ]);
 
+    const groupedStatusCount = groupedByStatus.reduce(
+      (acc, item: (typeof groupedByStatus)[number]) => {
+        acc[item.status] = item._count._all;
+        return acc;
+      },
+      {
+        PENDING: 0,
+        CONTACTED: 0,
+        CONVERTED: 0,
+        LOST: 0,
+      }
+    );
+
+    const remainingUnlocks = Number.isFinite(userUnlockQuota)
+      ? Math.max(0, userUnlockQuota - userUnlockCount)
+      : Number.POSITIVE_INFINITY;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
     return NextResponse.json({
       success: true,
       page,
       pageSize,
       total,
-      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      totalPages,
+      hasPreviousPage: page > 1,
+      hasNextPage: page < totalPages,
+      access: {
+        role: auth.user.role,
+        plan: auth.user.plan,
+        leadOfficeCap,
+        quota: {
+          unlocksUsed: userUnlockCount,
+          unlocksLimit: Number.isFinite(userUnlockQuota) ? userUnlockQuota : null,
+          unlocksRemaining: Number.isFinite(remainingUnlocks) ? remainingUnlocks : null,
+          isUnlimited: !Number.isFinite(userUnlockQuota),
+        },
+      },
+      summary: {
+        pending: groupedStatusCount.PENDING,
+        contacted: groupedStatusCount.CONTACTED,
+        converted: groupedStatusCount.CONVERTED,
+        lost: groupedStatusCount.LOST,
+      },
       leads: leads.map((lead: (typeof leads)[number]) => ({
+        isUnlocked:
+          auth.user.role === "ADMIN" ||
+          lead.clientId === auth.user.id ||
+          lead.unlocks.length > 0,
         id: lead.id,
         name: lead.name,
-        email: lead.email,
-        phone: lead.phone,
+        email:
+          auth.user.role === "ADMIN" || lead.clientId === auth.user.id || lead.unlocks.length > 0
+            ? lead.email
+            : null,
+        phone:
+          auth.user.role === "ADMIN" || lead.clientId === auth.user.id || lead.unlocks.length > 0
+            ? lead.phone
+            : null,
+        maskedEmail: maskEmail(lead.email),
+        maskedPhone: maskPhone(lead.phone),
         area: lead.area,
         state: lead.state,
+        city: lead.city,
+        neighborhood: lead.neighborhood,
+        urgency: lead.urgency,
+        gender: lead.gender,
         status: lead.status,
         isOwner: lead.clientId === auth.user.id,
         unlockCount: lead._count.unlocks,
+        canUnlock:
+          isLawyer &&
+          lead.unlocks.length === 0 &&
+          remainingUnlocks > 0 &&
+          lead._count.unlocks < leadOfficeCap,
+        lockReason:
+          isLawyer && lead.unlocks.length === 0
+            ? remainingUnlocks <= 0
+              ? "Você atingiu o limite de desbloqueios do seu plano."
+              : lead._count.unlocks >= leadOfficeCap
+              ? "Este lead já atingiu o limite de escritórios desbloqueados."
+              : null
+            : null,
         createdAt: lead.createdAt,
+        updatedAt: lead.updatedAt,
       })),
     });
   } catch {
     return NextResponse.json(
-      { success: false, message: "Nao foi possivel carregar leads." },
+      { success: false, message: "Não foi possível carregar leads." },
       { status: 500 }
     );
   }

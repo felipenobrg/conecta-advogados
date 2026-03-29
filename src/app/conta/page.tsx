@@ -38,16 +38,32 @@ const fieldClass =
 const primaryButtonClass =
   "inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#e8472a] px-5 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-[#c73d22] disabled:opacity-60";
 
-const oabStates = [
-  "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA",
-  "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO",
-];
+const fixedFieldClass =
+  "h-12 w-full rounded-2xl border border-[#3d2a5a] bg-[#0f061f] px-4 text-base font-semibold text-[#d7cfe7] outline-none";
 
 function formatWhatsapp(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) return digits;
   if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function roleLabel(role: "LAWYER" | "ADMIN" | null) {
+  if (role === "ADMIN") return "Administrador";
+  if (role === "LAWYER") return "Advogado";
+  return "-";
+}
+
+function planLabel(plan: "START" | "PRO" | "PREMIUM" | null) {
+  if (plan === "PREMIUM") return "Premium";
+  if (plan === "PRO") return "Pro";
+  if (plan === "START") return "Start";
+  return "-";
+}
+
+function formatOabNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits || "-";
 }
 
 export default function ContaPage() {
@@ -77,7 +93,7 @@ export default function ContaPage() {
       const json = (await response.json().catch(() => null)) as ProfilePayload | null;
 
       if (!response.ok || !json?.success || !json.profile) {
-        setStatusMessage(json?.message ?? "Nao foi possivel carregar seu perfil.");
+        setStatusMessage(json?.message ?? "Não foi possível carregar seu perfil.");
         return;
       }
 
@@ -137,7 +153,7 @@ export default function ContaPage() {
       const json = (await response.json().catch(() => null)) as ProfilePayload | null;
       if (!response.ok || !json?.success) {
         const firstIssue = json?.issues?.[0]?.message;
-        setStatusMessage(firstIssue ?? json?.message ?? "Nao foi possivel salvar o perfil.");
+        setStatusMessage(firstIssue ?? json?.message ?? "Não foi possível salvar o perfil.");
         return;
       }
 
@@ -166,6 +182,21 @@ export default function ContaPage() {
         </header>
 
         <form onSubmit={onSubmit} className="mt-4 grid gap-4 rounded-3xl border border-[#3d2a5a] bg-[#231540]/90 p-5 shadow-xl backdrop-blur">
+          <section className="grid gap-3 rounded-2xl border border-[#3d2a5a] bg-[#1a0a2e]/70 p-4 sm:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Tipo de usuário</label>
+              <input className={fixedFieldClass} value={roleLabel(role)} disabled readOnly />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Plano atual</label>
+              <input className={fixedFieldClass} value={planLabel(plan)} disabled readOnly />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Identificação</label>
+              <input className={fixedFieldClass} value={isLawyer ? `OAB ${formatOabNumber(form.oabNumber)}-${form.oabState || "--"}` : "Conta administrativa"} disabled readOnly />
+            </div>
+          </section>
+
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Nome</label>
@@ -216,31 +247,19 @@ export default function ContaPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Numero OAB</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">Número OAB (fixo)</label>
                 <input
-                  className={fieldClass}
+                  className={fixedFieldClass}
                   value={form.oabNumber}
-                  onChange={(event) => setField("oabNumber", event.target.value.replace(/\D/g, "").slice(0, 12))}
                   placeholder="123456"
-                  disabled={loading || saving}
+                  disabled
+                  readOnly
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">UF OAB</label>
-                <select
-                  className={fieldClass}
-                  value={form.oabState}
-                  onChange={(event) => setField("oabState", event.target.value.toUpperCase())}
-                  disabled={loading || saving}
-                >
-                  <option value="">Selecione</option>
-                  {oabStates.map((state) => (
-                    <option key={state} value={state}>
-                      {state}
-                    </option>
-                  ))}
-                </select>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.16em] text-[#a89bc2]">UF OAB (fixa)</label>
+                <input className={fixedFieldClass} value={form.oabState || "-"} disabled readOnly />
               </div>
 
               <div className="sm:col-span-2">
@@ -259,7 +278,7 @@ export default function ContaPage() {
 
           <div className="flex items-center justify-between gap-3">
             <button type="submit" className={primaryButtonClass} disabled={loading || saving}>
-              <Save size={16} /> {saving ? "Salvando..." : "Salvar alteracoes"}
+              <Save size={16} /> {saving ? "Salvando..." : "Salvar alterações"}
             </button>
             <button
               type="button"

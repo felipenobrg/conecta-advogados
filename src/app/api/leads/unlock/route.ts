@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireAppUser } from "@/lib/auth/requireAppUser";
@@ -13,7 +14,7 @@ function hoursToMilliseconds(hours: number) {
   return hours * 60 * 60 * 1000;
 }
 
-function getUnlockMaxByPlan(plan: "START" | "PRO" | "PREMIUM", role: "CLIENT" | "LAWYER" | "ADMIN") {
+function getUserUnlockQuotaByPlan(plan: "START" | "PRO" | "PREMIUM", role: "CLIENT" | "LAWYER" | "ADMIN") {
   if (role === "ADMIN") {
     return Number.POSITIVE_INFINITY;
   }
@@ -24,12 +25,18 @@ function getUnlockMaxByPlan(plan: "START" | "PRO" | "PREMIUM", role: "CLIENT" | 
   }
 
   if (plan === "PRO") {
-    const proLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PRO ?? Number.POSITIVE_INFINITY);
+    const proLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PRO ?? 30);
     return Number.isFinite(proLimit) ? Math.max(0, Math.floor(proLimit)) : Number.POSITIVE_INFINITY;
   }
 
-  const premiumLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PREMIUM ?? Number.POSITIVE_INFINITY);
+  const premiumLimit = Number(process.env.LEAD_UNLOCK_LIMIT_PREMIUM ?? 75);
   return Number.isFinite(premiumLimit) ? Math.max(0, Math.floor(premiumLimit)) : Number.POSITIVE_INFINITY;
+}
+
+function getLeadOfficeCap() {
+  const defaultCap = 3;
+  const cap = Number(process.env.LEAD_UNLOCK_MAX_PER_LEAD ?? defaultCap);
+  return Number.isFinite(cap) ? Math.max(1, Math.floor(cap)) : defaultCap;
 }
 
 export async function POST(request: Request) {
@@ -47,7 +54,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { leadId, dryRun } = requestSchema.parse(body);
 
-    const unlockMax = getUnlockMaxByPlan(auth.user.plan, auth.user.role);
+    const userUnlockQuota = getUserUnlockQuotaByPlan(auth.user.plan, auth.user.role);
+    const leadOfficeCap = getLeadOfficeCap();
     const reopenHours = Number(process.env.LEAD_UNLOCK_REOPEN_HOURS ?? 48);
 
     const lead = await prisma.lead.findUnique({
@@ -62,7 +70,7 @@ export async function POST(request: Request) {
     });
 
     if (!lead) {
-      return NextResponse.json({ success: false, message: "Lead nao encontrado." }, { status: 404 });
+      return NextResponse.json({ success: false, message: "Lead não encontrado." }, { status: 404 });
     }
 
     const alreadyUnlocked = lead.unlocks.some((unlock) => unlock.userId === auth.user.id);
@@ -72,13 +80,18 @@ export async function POST(request: Request) {
           success: true,
           alreadyUnlocked: true,
           eligible: false,
-          reason: "Lead ja desbloqueado por este escritorio.",
+          reason: "Lead já desbloqueado por este escritório.",
         },
         { status: 200 }
       );
     }
 
     const unlockCount = lead.unlocks.length;
+    const userUnlockCount = await prisma.leadUnlock.count({
+      where: {
+        userId: auth.user.id,
+      },
+    });
     const lastUnlock = lead.unlocks[0];
     const lastUnlockAt = lastUnlock ? new Date(lastUnlock.unlockedAt).getTime() : null;
     const canReopenAfter48h =
@@ -86,16 +99,23 @@ export async function POST(request: Request) {
       lastUnlockAt !== null &&
       Date.now() - lastUnlockAt >= hoursToMilliseconds(reopenHours);
 
-    const eligible = unlockCount < unlockMax || canReopenAfter48h;
+    const withinUserQuota = userUnlockCount < userUnlockQuota;
+    const withinLeadCap = unlockCount < leadOfficeCap || canReopenAfter48h;
+    const eligible = withinUserQuota && withinLeadCap;
 
     if (!eligible) {
-      const maxLabel = Number.isFinite(unlockMax) ? String(unlockMax) : "ilimitado";
+      const maxLabel = Number.isFinite(userUnlockQuota) ? String(userUnlockQuota) : "ilimitado";
+      const reason = !withinUserQuota
+        ? `Limite do seu plano atingido (${maxLabel} desbloqueios).`
+        : `Este lead atingiu o limite de ${leadOfficeCap} escritórios e a janela adicional de ${reopenHours}h ainda está indisponível.`;
+
       return NextResponse.json(
         {
           success: false,
           eligible: false,
-          reason: `Limite de ${maxLabel} desbloqueios atingido e janela adicional de ${reopenHours}h ainda indisponivel.`,
+          reason,
           unlockCount,
+          userUnlockCount,
         },
         { status: 409 }
       );
@@ -106,24 +126,46 @@ export async function POST(request: Request) {
         success: true,
         eligible: true,
         reason: canReopenAfter48h
-          ? `Elegivel por reabertura apos ${reopenHours}h sem atendimento.`
-          : "Elegivel dentro do limite de desbloqueios.",
+          ? `Elegível por reabertura após ${reopenHours}h sem atendimento.`
+          : "Elegível dentro do limite do seu plano.",
         unlockCount,
+        userUnlockCount,
       });
     }
 
-    const unlock = await prisma.leadUnlock.create({
-      data: {
-        leadId,
-        userId: auth.user.id,
-      },
-    });
+    let unlock: { id: string };
+    try {
+      unlock = await prisma.leadUnlock.create({
+        data: {
+          leadId,
+          userId: auth.user.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return NextResponse.json(
+          {
+            success: true,
+            alreadyUnlocked: true,
+            eligible: false,
+            reason: "Lead já desbloqueado por este escritório.",
+          },
+          { status: 200 }
+        );
+      }
+
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,
       eligible: true,
       unlockId: unlock.id,
       unlockCountAfter: unlockCount + 1,
+      userUnlockCountAfter: userUnlockCount + 1,
       reason: canReopenAfter48h
         ? `Desbloqueio liberado por regra de ${reopenHours}h sem atendimento.`
         : "Desbloqueio realizado dentro do limite do plano.",
@@ -135,13 +177,13 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, message: "Payload invalido.", issues: error.issues },
+        { success: false, message: "Payload inválido.", issues: error.issues },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { success: false, message: "Nao foi possivel processar desbloqueio do lead." },
+      { success: false, message: "Não foi possível processar desbloqueio do lead." },
       { status: 500 }
     );
   }
