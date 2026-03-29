@@ -9,8 +9,7 @@ const navItems = [
     { label: "Inicio", href: "/", icon: House },
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Leads", href: "/leads", icon: Users },
-    { label: "Conta", href: "/conta", icon: Settings },
-    { label: "Onboarding", href: "/onboarding", icon: Bot },
+    { label: "Conta", href: "/conta", icon: Settings }
 ];
 
 type AppShellProps = {
