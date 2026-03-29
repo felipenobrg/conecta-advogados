@@ -68,6 +68,8 @@ type FieldErrors = Partial<Record<
     string
 >>;
 
+type FieldErrorKey = keyof FieldErrors;
+
 const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -173,6 +175,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
     const [lawyerStep3Substep, setLawyerStep3Substep] = useState<0 | 1 | 2>(0);
     const [statusMessage, setStatusMessage] = useState("");
     const [nextPath, setNextPath] = useState("/dashboard");
+    const [attemptedContinue, setAttemptedContinue] = useState(false);
     const continueLockRef = useRef(false);
 
     const isLawyer = data.role === "LAWYER";
@@ -225,6 +228,20 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
 
             const next = { ...current };
             delete next[field];
+            return next;
+        });
+    }
+
+    function validateSingleField(field: FieldErrorKey) {
+        const stepErrors = collectCurrentStepErrors();
+        setFieldErrors((current) => {
+            const next = { ...current };
+            const message = stepErrors[field];
+            if (message) {
+                next[field] = message;
+            } else {
+                delete next[field];
+            }
             return next;
         });
     }
@@ -633,11 +650,13 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
         setSubmitting(true);
 
         try {
+            setAttemptedContinue(true);
             const stepErrors = collectCurrentStepErrors();
             if (Object.keys(stepErrors).length > 0) {
                 setFieldErrors(stepErrors);
+                const totalErrors = Object.keys(stepErrors).length;
                 const firstError = Object.values(stepErrors)[0] ?? "Preencha os campos obrigatorios para continuar.";
-                setStatusMessage(firstError);
+                setStatusMessage(`Revise ${totalErrors} campo(s): ${firstError}`);
                 return;
             }
 
@@ -802,6 +821,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                             patchData({ fullName: event.target.value });
                                             clearFieldError("fullName");
                                         }}
+                                        onBlur={() => validateSingleField("fullName")}
                                         className={getFieldClass(Boolean(fieldErrors.fullName))}
                                     />
                                     {fieldErrors.fullName && <p className="text-xs text-rose-300">{fieldErrors.fullName} Ex: nome e sobrenome.</p>}
@@ -815,6 +835,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                             patchData({ email: event.target.value.trim().toLowerCase() });
                                             clearFieldError("email");
                                         }}
+                                        onBlur={() => validateSingleField("email")}
                                         className={getFieldClass(Boolean(fieldErrors.email))}
                                     />
                                     {fieldErrors.email && <p className="text-xs text-rose-300">{fieldErrors.email} Ex: nome@dominio.com.</p>}
@@ -828,6 +849,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                             patchData({ phone: formatWhatsappMask(event.target.value) });
                                             clearFieldError("phone");
                                         }}
+                                        onBlur={() => validateSingleField("phone")}
                                         className={getFieldClass(Boolean(fieldErrors.phone))}
                                     />
                                     <p className="text-[11px] text-[#a89bc2]">Formato: DDD + numero. Exemplo: (11) 98765-4321.</p>
@@ -850,6 +872,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                             patchData({ password: event.target.value });
                                             clearFieldError("password");
                                         }}
+                                        onBlur={() => validateSingleField("password")}
                                         className={getFieldClass(Boolean(fieldErrors.password))}
                                     />
                                     <p className="text-[11px] text-[#a89bc2]">
@@ -876,6 +899,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                                 patchData({ otpCode: event.target.value.replace(/\D/g, "").slice(0, 6) });
                                                 clearFieldError("otpCode");
                                             }}
+                                            onBlur={() => validateSingleField("otpCode")}
                                             className={getFieldClass(Boolean(fieldErrors.otpCode))}
                                         />
                                         <button
@@ -911,6 +935,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                                 patchData({ age: event.target.value ? Number(event.target.value) : undefined });
                                                 clearFieldError("age");
                                             }}
+                                            onBlur={() => validateSingleField("age")}
                                             className={getFieldClass(Boolean(fieldErrors.age))}
                                         />
                                         <select
@@ -922,6 +947,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                                 });
                                                 clearFieldError("gender");
                                             }}
+                                            onBlur={() => validateSingleField("gender")}
                                             className={getFieldClass(Boolean(fieldErrors.gender))}
                                         >
                                             <option value="">Selecione seu genero</option>
@@ -941,6 +967,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                                 patchData({ consentAccepted: event.target.checked });
                                                 clearFieldError("consentAccepted");
                                             }}
+                                            onBlur={() => validateSingleField("consentAccepted")}
                                             className="mt-1"
                                         />
                                         Concordo com os termos de uso e politica de privacidade (LGPD) para criar minha conta.
@@ -983,6 +1010,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                     patchData({ officeName: event.target.value });
                                     clearFieldError("officeName");
                                 }}
+                                onBlur={() => validateSingleField("officeName")}
                                 className={getFieldClass(Boolean(fieldErrors.officeName))}
                             />
                             {fieldErrors.officeName && <p className="text-xs text-rose-300">{fieldErrors.officeName}</p>}
@@ -996,6 +1024,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                     patchData({ officeLogoUrl: event.target.value });
                                     clearFieldError("officeLogoUrl");
                                 }}
+                                onBlur={() => validateSingleField("officeLogoUrl")}
                                 className={getFieldClass(Boolean(fieldErrors.officeLogoUrl))}
                             />
                             <p className="text-[11px] text-[#a89bc2]">Aceita links publicos de imagem (PNG ou JPG).</p>
@@ -1052,6 +1081,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                     patchData({ oabNumber: normalizeOabNumber(event.target.value) });
                                     clearFieldError("oabNumber");
                                 }}
+                                onBlur={() => validateSingleField("oabNumber")}
                                 className={getFieldClass(Boolean(fieldErrors.oabNumber))}
                             />
                             {fieldErrors.oabNumber && <p className="text-xs text-rose-300">{fieldErrors.oabNumber}</p>}
@@ -1062,6 +1092,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                     patchData({ oabState: event.target.value });
                                     clearFieldError("oabState");
                                 }}
+                                onBlur={() => validateSingleField("oabState")}
                                 className={getFieldClass(Boolean(fieldErrors.oabState))}
                             >
                                 <option value="">Selecione o estado da OAB</option>
@@ -1281,6 +1312,13 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                         <div className="flex items-center gap-3 rounded-2xl border border-[#3d2a5a] bg-[#1a0a2e] p-4 text-sm text-[#a89bc2]">
                             <span className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-[#e8472a] border-r-transparent" />
                             Criando conta e preparando seu dashboard...
+                        </div>
+                    )}
+
+                    {attemptedContinue && Object.keys(fieldErrors).length > 0 && (
+                        <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100" aria-live="polite">
+                            <p className="font-semibold uppercase tracking-wide">Verifique os campos destacados antes de continuar.</p>
+                            <p className="mt-1 text-rose-200">Total de ajustes: {Object.keys(fieldErrors).length}</p>
                         </div>
                     )}
 

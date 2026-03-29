@@ -35,6 +35,32 @@ body {
   }
 }
 
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-slow {
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
 .scarcity-track {
   animation: scarcity-scroll 34s linear infinite;
   will-change: transform;
@@ -42,6 +68,18 @@ body {
 
 .scarcity-track:hover {
   animation-play-state: paused;
+}
+
+.animate-fade-up {
+  animation: fade-up 540ms ease-out both;
+}
+
+.animate-float-slow {
+  animation: float-slow 4.6s ease-in-out infinite;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
 }
 
 * {

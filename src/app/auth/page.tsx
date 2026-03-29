@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { MainHeader } from "@/components/navigation/MainHeader";
 
@@ -38,7 +39,6 @@ function AuthPageContent() {
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [isMagicLoading, setIsMagicLoading] = useState(false);
 
     const requestedRole = normalizeRole(searchParams.get("role"));
     const nextPath = searchParams.get("next");
@@ -83,7 +83,7 @@ function AuthPageContent() {
             supabase = createSupabaseBrowserClient();
         } catch {
             setIsLoading(false);
-            setMessage("Supabase nao configurado neste ambiente.");
+            setMessage("Supabase não configurado neste ambiente.");
             return;
         }
 
@@ -107,52 +107,11 @@ function AuthPageContent() {
         applyRoleAndRedirect(resolvedRole);
     }
 
-    async function handleSendMagicLink() {
-        if (!email) {
-            setMessage("Informe um email valido para receber o magic link.");
-            return;
-        }
-
-        setMessage("");
-        setIsMagicLoading(true);
-
-        let supabase;
-        try {
-            supabase = createSupabaseBrowserClient();
-        } catch {
-            setIsMagicLoading(false);
-            setMessage("Supabase nao configurado neste ambiente.");
-            return;
-        }
-
-        const emailRedirectUrl = new URL("/auth/callback", window.location.origin);
-        if (nextPath && nextPath.startsWith("/")) {
-            emailRedirectUrl.searchParams.set("next", nextPath);
-        }
-
-        const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-                emailRedirectTo: emailRedirectUrl.toString(),
-                shouldCreateUser: true,
-            },
-        });
-
-        setIsMagicLoading(false);
-
-        if (error) {
-            setMessage(error.message);
-            return;
-        }
-
-        setMessage("Magic link enviado. Verifique seu email para concluir o acesso.");
-    }
-
     async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
         if (!email || !password) {
-            setMessage("Preencha email e senha.");
+            setMessage("Preencha e-mail e senha.");
             return;
         }
 
@@ -160,62 +119,82 @@ function AuthPageContent() {
     }
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)] px-4 py-10 text-white">
+        <main className="min-h-screen bg-[radial-gradient(circle_at_10%_10%,#4d145e_0%,#210537_40%,#120022_70%)] px-4 py-8 text-white sm:py-10">
             <MainHeader className="mb-3" />
-            <section className="mx-auto w-full max-w-md rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur">
-                <h1 className="text-2xl font-bold">Minha Conta</h1>
-                <p className="mt-2 text-sm text-zinc-200">
-                    Novos usuarios devem se cadastrar apenas pelo onboarding.
-                </p>
-                <p className="mt-1 text-xs text-zinc-300">Acesso solicitado para perfil: {requestedRoleLabel}.</p>
+            <section className="mx-auto grid w-full max-w-5xl gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+                <article className="relative overflow-hidden rounded-3xl border border-[#3d2a5a] bg-[linear-gradient(160deg,rgba(35,12,58,0.95),rgba(20,8,37,0.96))] p-5 shadow-2xl backdrop-blur sm:p-6">
+                    <div className="pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full bg-[#ff453a]/20 blur-3xl" />
+                    <p className="inline-flex items-center gap-2 rounded-full border border-[#ff453a]/35 bg-[#ff453a]/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#ffc6bf]">
+                        <Sparkles size={12} /> Acesso Profissional
+                    </p>
+                    <h1 className="mt-3 text-3xl font-black uppercase leading-tight tracking-wide text-white">
+                        Área do
+                        <span className="block text-[#ff453a]">advogado</span>
+                    </h1>
+                    <p className="mt-3 max-w-md text-sm leading-6 text-[#d8cde9]">
+                        Entre para visualizar leads bloqueados, liberar contatos qualificados e acompanhar a evolução do seu funil.
+                    </p>
 
-                <form onSubmit={onSubmit} className="mt-5 space-y-3">
+                    <div className="mt-5 space-y-2">
+                        <div className="rounded-2xl border border-[#3d2a5a] bg-[#120727]/75 p-3 text-sm text-[#d8cde9]">
+                            <p className="inline-flex items-center gap-2 font-semibold text-white">
+                                <ShieldCheck size={16} className="text-[#ff453a]" /> Segurança de conta
+                            </p>
+                            <p className="mt-1 text-xs text-[#a89bc2]">Acesso solicitado para perfil: {requestedRoleLabel}.</p>
+                        </div>
+                        <div className="rounded-2xl border border-[#3d2a5a] bg-[#120727]/75 p-3 text-xs text-[#a89bc2]">
+                            Novos usuários devem se cadastrar pelo onboarding para garantir validação correta dos dados.
+                        </div>
+                    </div>
+                </article>
+
+                <article className="rounded-3xl border border-[#3d2a5a] bg-[#1b0d33]/90 p-5 shadow-2xl backdrop-blur sm:p-6">
+                    <h2 className="text-xl font-black uppercase tracking-wide text-white">Minha conta</h2>
+                    <p className="mt-1 text-sm text-[#cfc1e4]">Faça login com e-mail e senha.</p>
+
+                    <form onSubmit={onSubmit} className="mt-5 space-y-3">
                     <input
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
-                        placeholder="Email"
+                        placeholder="E-mail"
                         type="email"
-                        className="h-12 w-full rounded-xl border border-white/20 bg-white/10 px-4 text-sm outline-none placeholder:text-zinc-300 focus:border-[#ff453a]"
+                        className="h-12 w-full rounded-2xl border border-[#4b3770] bg-[#120727] px-4 text-sm text-white outline-none placeholder:text-[#8d7fa7] focus:border-[#ff453a]"
                     />
                     <input
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         placeholder="Senha"
                         type="password"
-                        className="h-12 w-full rounded-xl border border-white/20 bg-white/10 px-4 text-sm outline-none placeholder:text-zinc-300 focus:border-[#ff453a]"
+                        className="h-12 w-full rounded-2xl border border-[#4b3770] bg-[#120727] px-4 text-sm text-white outline-none placeholder:text-[#8d7fa7] focus:border-[#ff453a]"
                     />
 
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="mt-1 inline-flex h-12 w-full items-center justify-center rounded-full bg-[#ff453a] text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                        className="mt-1 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#ff453a] text-sm font-black uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-50"
                     >
-                        {isLoading ? "Processando..." : "Entrar"}
-                    </button>
-
-                    <button
-                        type="button"
-                        disabled={isMagicLoading}
-                        onClick={handleSendMagicLink}
-                        className="inline-flex h-12 w-full items-center justify-center rounded-full border border-white/30 bg-white/5 text-sm font-bold text-white transition hover:bg-white/15 disabled:opacity-50"
-                    >
-                        {isMagicLoading ? "Enviando link..." : "Entrar com Magic Link"}
+                        <LockKeyhole size={16} /> {isLoading ? "Processando..." : "Entrar na conta"}
                     </button>
                 </form>
 
-                {displayMessage && <p className="mt-3 text-xs text-zinc-200">{displayMessage}</p>}
+                    {displayMessage && (
+                        <p className="mt-3 rounded-xl border border-[#3d2a5a] bg-[#120727]/75 px-3 py-2 text-xs text-[#ffd2c8]">
+                            {displayMessage}
+                        </p>
+                    )}
 
-                <div className="mt-5 space-y-2 text-xs text-zinc-300">
-                    <Link href="/onboarding?role=LAWYER" className="block font-semibold text-zinc-100 hover:text-white">
-                        Nao tenho conta: cadastrar como advogado
-                    </Link>
-                    <Link href="/leads/inscricao" className="block font-semibold text-zinc-100 hover:text-white">
-                        Quero apenas enviar meu caso (sem conta)
-                    </Link>
-                    <Link href="/" className="block font-semibold text-zinc-100 hover:text-white">
-                        Voltar para a landing
-                    </Link>
-                </div>
+                    <div className="mt-5 space-y-2 text-xs text-[#cfc1e4]">
+                        <Link href="/onboarding?role=LAWYER" className="block font-semibold text-zinc-100 hover:text-white">
+                            Não tenho conta: cadastrar como advogado
+                        </Link>
+                        <Link href="/leads/inscricao" className="block font-semibold text-zinc-100 hover:text-white">
+                            Quero apenas enviar meu caso (sem conta)
+                        </Link>
+                        <Link href="/" className="block font-semibold text-zinc-100 hover:text-white">
+                            Voltar para a landing
+                        </Link>
+                    </div>
+                </article>
             </section>
         </main>
     );
@@ -228,7 +207,7 @@ export default function AuthPage() {
                 <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2b0a46_0%,#130022_55%)] px-4 py-10 text-white">
                     <MainHeader className="mb-3" />
                     <section className="mx-auto w-full max-w-md rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur">
-                        <p className="text-sm text-zinc-200">Carregando autenticacao...</p>
+                        <p className="text-sm text-zinc-200">Carregando autenticação...</p>
                     </section>
                 </main>
             }
