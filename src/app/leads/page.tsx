@@ -179,6 +179,7 @@ export default function LeadsPage() {
     const [isExportingCsv, setIsExportingCsv] = useState(false);
 
     const [viewMode, setViewMode] = useState<ViewMode>("table");
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [search, setSearch] = useState("");
     const [area, setArea] = useState("");
     const [stateFilter, setStateFilter] = useState("");
@@ -458,12 +459,42 @@ export default function LeadsPage() {
         return result;
     }, [payload?.leads]);
 
+    const visibleLeads = useMemo(() => payload?.leads ?? [], [payload?.leads]);
+
+    const unlockedVisibleCount = useMemo(
+        () => visibleLeads.filter((lead) => lead.isUnlocked).length,
+        [visibleLeads]
+    );
+
+    const blockedVisibleCount = useMemo(
+        () => visibleLeads.filter((lead) => !lead.isUnlocked).length,
+        [visibleLeads]
+    );
+
+    const unlockableVisibleCount = useMemo(
+        () => visibleLeads.filter((lead) => !lead.isUnlocked && lead.canUnlock).length,
+        [visibleLeads]
+    );
+
+    const activeFiltersCount = useMemo(() => {
+        let count = 0;
+        if (search.trim()) count += 1;
+        if (status) count += 1;
+        if (urgency) count += 1;
+        if (sortBy !== "createdAt" || sortDir !== "desc") count += 1;
+        if (area.trim()) count += 1;
+        if (stateFilter.trim()) count += 1;
+        if (city.trim()) count += 1;
+        if (neighborhood.trim()) count += 1;
+        return count;
+    }, [search, status, urgency, sortBy, sortDir, area, stateFilter, city, neighborhood]);
+
     const isPremium = payload?.access.plan === "PREMIUM";
     const isLawyer = payload?.access.role === "LAWYER";
     const canExportCsv = payload?.access.role === "ADMIN" || payload?.access.plan === "PREMIUM";
 
     return (
-        <AppShell title="CRM de Leads" className="pb-10">
+        <AppShell title="CRM de Leads" className="pb-28 md:pb-10">
             <section className="mx-auto max-w-7xl space-y-5">
                 <header className="relative overflow-hidden rounded-3xl border border-[#3d2a5a] bg-linear-to-br from-[#2d1b4e] via-[#231540] to-[#1a0a2e] p-5 shadow-2xl">
                     <div className="absolute -right-16 -top-12 h-44 w-44 rounded-full bg-[#e8472a]/20 blur-3xl" />
@@ -534,6 +565,48 @@ export default function LeadsPage() {
                     </article>
                 </section>
 
+                <section className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/90 p-4 shadow-sm">
+                    <h2 className="text-sm font-bold uppercase tracking-wide text-[#a89bc2]">Painel operacional</h2>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                        {[
+                            {
+                                label: "Leads desbloqueados na página",
+                                count: unlockedVisibleCount,
+                                total: visibleLeads.length,
+                                barClass: "bg-emerald-400",
+                            },
+                            {
+                                label: "Leads bloqueados na página",
+                                count: blockedVisibleCount,
+                                total: visibleLeads.length,
+                                barClass: "bg-rose-400",
+                            },
+                            {
+                                label: "Prontos para desbloqueio",
+                                count: unlockableVisibleCount,
+                                total: blockedVisibleCount,
+                                barClass: "bg-amber-400",
+                            },
+                        ].map((metric) => {
+                            const total = Math.max(1, metric.total);
+                            const percentage = Math.min(100, Math.round((metric.count / total) * 100));
+
+                            return (
+                                <article key={metric.label} className="rounded-xl border border-[#3d2a5a] bg-[#1a0a2e]/70 p-3">
+                                    <p className="text-xs text-[#a89bc2]">{metric.label}</p>
+                                    <div className="mt-2 flex items-end justify-between">
+                                        <p className="text-2xl font-black text-white">{metric.count}</p>
+                                        <p className="text-xs text-[#a89bc2]">{percentage}%</p>
+                                    </div>
+                                    <div className="mt-2 h-2 rounded-full bg-[#2d1b4e]">
+                                        <div className={`h-2 rounded-full ${metric.barClass}`} style={{ width: `${percentage}%` }} />
+                                    </div>
+                                </article>
+                            );
+                        })}
+                    </div>
+                </section>
+
                 {isPremium && (
                     <section className="grid gap-3 lg:grid-cols-2">
                         <article className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/90 p-4 shadow-sm">
@@ -583,7 +656,7 @@ export default function LeadsPage() {
                 )}
 
                 <section className="rounded-2xl border border-[#3d2a5a] bg-[#231540]/90 p-4 shadow-sm">
-                    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-2 md:grid-cols-5">
                         <input
                             value={search}
                             onChange={(event) => {
@@ -591,43 +664,7 @@ export default function LeadsPage() {
                                 setSearch(event.target.value);
                             }}
                             placeholder="Buscar por nome, e-mail, telefone..."
-                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
-                        />
-                        <input
-                            value={area}
-                            onChange={(event) => {
-                                setPage(1);
-                                setArea(event.target.value);
-                            }}
-                            placeholder="Área"
-                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
-                        />
-                        <input
-                            value={stateFilter}
-                            onChange={(event) => {
-                                setPage(1);
-                                setStateFilter(event.target.value);
-                            }}
-                            placeholder="Estado (UF)"
-                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
-                        />
-                        <input
-                            value={city}
-                            onChange={(event) => {
-                                setPage(1);
-                                setCity(event.target.value);
-                            }}
-                            placeholder="Cidade"
-                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
-                        />
-                        <input
-                            value={neighborhood}
-                            onChange={(event) => {
-                                setPage(1);
-                                setNeighborhood(event.target.value);
-                            }}
-                            placeholder="Bairro"
-                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
+                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a] md:col-span-2"
                         />
                         <select
                             value={status}
@@ -681,9 +718,58 @@ export default function LeadsPage() {
                         >
                             Ordem: {sortDir === "desc" ? "Decrescente" : "Crescente"}
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowAdvancedFilters((current) => !current)}
+                            className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e]"
+                        >
+                            {showAdvancedFilters ? "Ocultar filtros" : "Filtros avançados"}
+                        </button>
                     </div>
 
-                    <div className="mt-2 flex justify-end">
+                    {showAdvancedFilters && (
+                        <div className="mt-2 grid gap-2 md:grid-cols-4">
+                            <input
+                                value={area}
+                                onChange={(event) => {
+                                    setPage(1);
+                                    setArea(event.target.value);
+                                }}
+                                placeholder="Área"
+                                className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
+                            />
+                            <input
+                                value={stateFilter}
+                                onChange={(event) => {
+                                    setPage(1);
+                                    setStateFilter(event.target.value);
+                                }}
+                                placeholder="Estado (UF)"
+                                className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
+                            />
+                            <input
+                                value={city}
+                                onChange={(event) => {
+                                    setPage(1);
+                                    setCity(event.target.value);
+                                }}
+                                placeholder="Cidade"
+                                className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
+                            />
+                            <input
+                                value={neighborhood}
+                                onChange={(event) => {
+                                    setPage(1);
+                                    setNeighborhood(event.target.value);
+                                }}
+                                placeholder="Bairro"
+                                className="h-11 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-sm text-white outline-none placeholder:text-[#a89bc2] focus:border-[#e8472a]"
+                            />
+                        </div>
+                    )}
+
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                        <p className="text-xs text-[#a89bc2]">Filtros ativos: {activeFiltersCount}</p>
                         <button
                             type="button"
                             onClick={() => {
@@ -738,8 +824,108 @@ export default function LeadsPage() {
                     {loading && <TableSkeleton />}
 
                     {!loading && viewMode === "table" && (
-                        <div className="mt-3 overflow-x-auto">
-                            <table className="w-full min-w-330 text-left text-sm">
+                        <>
+                            <div className="mt-3 space-y-3 md:hidden">
+                                {(payload?.leads ?? []).map((lead) => {
+                                    const canManageStatus = lead.isUnlocked || payload?.access.role === "ADMIN";
+                                    const canShowContact = lead.isUnlocked || payload?.access.role === "ADMIN" || lead.isOwner;
+
+                                    return (
+                                        <article key={lead.id} className="rounded-2xl border border-[#3d2a5a] bg-[#1a0a2e]/80 p-3">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-white">{lead.name}</p>
+                                                    <p className="text-xs text-[#a89bc2]">{lead.area}</p>
+                                                    <p className="text-xs text-[#a89bc2]">{lead.city ?? "-"} · {lead.state}</p>
+                                                </div>
+                                                <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${urgencyBadgeClass(lead.urgency)}`}>
+                                                    {urgencyLabel(lead.urgency)}
+                                                </span>
+                                            </div>
+
+                                            <div className="mt-2 text-xs text-[#c9bde2]">
+                                                <p>{canShowContact ? lead.email ?? "-" : lead.maskedEmail}</p>
+                                                <p>{canShowContact ? lead.phone ?? "-" : lead.maskedPhone}</p>
+                                                <p className="text-[#a89bc2]">Status: {statusLabel(lead.status)}</p>
+                                            </div>
+
+                                            <div className="mt-3 space-y-2">
+                                                {isLawyer && !lead.isUnlocked && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => void handleUnlock(lead.id)}
+                                                        disabled={!lead.canUnlock || unlockingLeadId === lead.id}
+                                                        className="h-9 w-full rounded-full bg-[#e8472a] px-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#c73d22] disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        {unlockingLeadId === lead.id ? "Desbloqueando..." : "Desbloquear"}
+                                                    </button>
+                                                )}
+
+                                                {canManageStatus && (
+                                                    <div className="flex gap-2">
+                                                        <select
+                                                            value={draftStatus[lead.id] ?? lead.status}
+                                                            onChange={(event) =>
+                                                                setDraftStatus((current) => ({
+                                                                    ...current,
+                                                                    [lead.id]: event.target.value as LeadStatus,
+                                                                }))
+                                                            }
+                                                            className="h-9 flex-1 rounded-full border border-[#3d2a5a] bg-[#120727] px-3 text-xs text-white outline-none"
+                                                        >
+                                                            {statusOptions
+                                                                .filter((option) => option.value)
+                                                                .map((option) => (
+                                                                    <option key={option.value} value={option.value}>
+                                                                        {option.label}
+                                                                    </option>
+                                                                ))}
+                                                        </select>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => void handleSaveStatus(lead.id)}
+                                                            disabled={savingLeadId === lead.id}
+                                                            className="h-9 rounded-full border border-[#3d2a5a] bg-[#120727] px-3 text-xs font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e] disabled:opacity-60"
+                                                        >
+                                                            Salvar
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {canShowContact && (
+                                                    <div className="flex gap-2">
+                                                        {lead.phone && (
+                                                            <a
+                                                                href={`https://wa.me/55${phoneDigits(lead.phone)}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex h-8 items-center rounded-full border border-[#3d2a5a] bg-[#120727] px-3 text-[11px] font-semibold text-[#a89bc2]"
+                                                            >
+                                                                WhatsApp
+                                                            </a>
+                                                        )}
+                                                        {lead.email && (
+                                                            <a
+                                                                href={`mailto:${lead.email}`}
+                                                                className="inline-flex h-8 items-center rounded-full border border-[#3d2a5a] bg-[#120727] px-3 text-[11px] font-semibold text-[#a89bc2]"
+                                                            >
+                                                                E-mail
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {!lead.isUnlocked && lead.lockReason && (
+                                                    <p className="text-[11px] text-amber-200">{lead.lockReason}</p>
+                                                )}
+                                            </div>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="mt-3 hidden overflow-x-auto md:block">
+                                <table className="w-full min-w-330 text-left text-sm">
                                 <thead>
                                     <tr className="border-b border-white/15 text-[#a89bc2]">
                                         <th className="pb-2">Lead</th>
@@ -872,8 +1058,9 @@ export default function LeadsPage() {
                                         );
                                     })}
                                 </tbody>
-                            </table>
-                        </div>
+                                </table>
+                            </div>
+                        </>
                     )}
 
                     {!loading && viewMode === "kanban" && (
@@ -1063,6 +1250,27 @@ export default function LeadsPage() {
                         </div>
                     </div>
                 </section>
+
+                {!loading && (
+                    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[#3d2a5a] bg-[#120727]/95 p-3 backdrop-blur md:hidden">
+                        <div className="mx-auto flex max-w-7xl gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setViewMode((current) => (current === "table" ? "kanban" : "table"))}
+                                className="h-11 flex-1 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-xs font-semibold uppercase tracking-wide text-[#a89bc2]"
+                            >
+                                {viewMode === "table" ? "Ver Kanban" : "Ver Tabela"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void loadLeads()}
+                                className="h-11 flex-1 rounded-full bg-[#e8472a] px-3 text-xs font-bold uppercase tracking-wide text-white"
+                            >
+                                Atualizar
+                            </button>
+                        </div>
+                    </div>
+                )}
             </section>
         </AppShell>
     );
