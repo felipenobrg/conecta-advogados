@@ -343,6 +343,19 @@ export async function POST(request: Request) {
       );
     }
 
+    if (payload.role === "CLIENT") {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "CLIENT_ONBOARDING_DISABLED",
+          message:
+            "Cadastro de cliente pelo onboarding foi desativado. Use a inscricao publica de lead para solicitar contato.",
+          traceId,
+        },
+        { status: 409 }
+      );
+    }
+
     if (payload.role === "LAWYER" && !payload.selectedPlan) {
       return NextResponse.json(
         {

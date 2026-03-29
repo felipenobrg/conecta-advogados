@@ -53,6 +53,11 @@ model Lead {
   whatsappVerified Boolean      @default(false)
   area             String
   state            String
+  city             String?
+  neighborhood     String?
+  problemDescription String?
+  urgency          String       @default("MEDIUM")
+  gender           String?
   status           LeadStatus   @default(PENDING)
   statusUpdatedAt  DateTime?
   statusUpdatedBy  Role?

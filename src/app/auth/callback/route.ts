@@ -8,7 +8,7 @@ type AppRole = "LAWYER" | "CLIENT" | "ADMIN";
 function redirectPathForRole(role: AppRole) {
   if (role === "ADMIN") return "/admin";
   if (role === "LAWYER") return "/dashboard";
-  return "/client/dashboard";
+  return "/leads/inscricao";
 }
 
 function redirectWithMessage(request: Request, message: string) {
@@ -22,6 +22,7 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code");
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
+  const nextPath = requestUrl.searchParams.get("next");
 
   const supabase = await createSupabaseServerClient();
 
@@ -55,11 +56,13 @@ export async function GET(request: Request) {
 
   if (!appUser) {
     const onboardingUrl = new URL("/onboarding", request.url);
+    onboardingUrl.searchParams.set("role", "LAWYER");
     onboardingUrl.searchParams.set("email", data.user.email);
     return NextResponse.redirect(onboardingUrl);
   }
 
-  const destination = new URL(redirectPathForRole(appUser.role), request.url);
+  const destinationPath = nextPath && nextPath.startsWith("/") ? nextPath : redirectPathForRole(appUser.role);
+  const destination = new URL(destinationPath, request.url);
   const response = NextResponse.redirect(destination);
   response.cookies.set("app_role", appUser.role, {
     path: "/",

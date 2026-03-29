@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bot, House, LayoutDashboard, UserRound, Users } from "lucide-react";
+import { Bot, House, LayoutDashboard, Settings, Users } from "lucide-react";
 import { MainHeader } from "@/components/navigation/MainHeader";
 
 const navItems = [
     { label: "Inicio", href: "/", icon: House },
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Leads", href: "/leads", icon: Users },
+    { label: "Conta", href: "/conta", icon: Settings },
     { label: "Onboarding", href: "/onboarding", icon: Bot },
-    { label: "Cliente", href: "/client/dashboard", icon: UserRound },
 ];
 
 type AppShellProps = {
@@ -76,7 +76,7 @@ export function AppShell({
                 </div>
 
                 {showSidebar ? (
-                    <nav className="fixed inset-x-4 bottom-4 z-30 grid grid-cols-5 gap-2 rounded-2xl border border-[#3d2a5a] bg-[#1b0d33]/95 p-2 shadow-2xl backdrop-blur lg:hidden">
+                    <nav className="fixed inset-x-4 bottom-4 z-30 grid grid-cols-4 gap-2 rounded-2xl border border-[#3d2a5a] bg-[#1b0d33]/95 p-2 shadow-2xl backdrop-blur lg:hidden">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href;
                             const Icon = item.icon;

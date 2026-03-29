@@ -121,6 +121,7 @@ export async function completeOnboarding(payload: CompleteOnboardingPayload) {
       ONBOARDING_SESSION_INVALID: "Sua sessao expirou. Recarregue a pagina e continue o cadastro.",
       ONBOARDING_SESSION_LOOKUP_FAILED: "Nao foi possivel validar sua sessao agora. Tente novamente.",
       CHECKOUT_INIT_FAILED: "Conta criada, mas falha ao iniciar checkout. Tente novamente em instantes.",
+      CLIENT_ONBOARDING_DISABLED: "Cadastro de cliente com conta foi desativado. Use a inscricao publica para solicitar contato juridico.",
       DATABASE_NOT_CONFIGURED: "Servico temporariamente indisponivel. Tente novamente em alguns minutos.",
       AUTH_USER_CREATE_FAILED: "Nao foi possivel criar seu acesso agora. Tente novamente em instantes.",
       DATABASE_CONSTRAINT_FAILED: "Conflito de dados no cadastro. Revise os dados e tente novamente.",
@@ -142,6 +143,7 @@ export async function completeOnboarding(payload: CompleteOnboardingPayload) {
       .join(" | ");
 
     const mapped = errorPayload?.code ? messageByCode[errorPayload.code] : undefined;
+    const isDev = process.env.NODE_ENV !== "production";
     const debug = [
       errorPayload?.traceId ? `trace: ${errorPayload.traceId}` : undefined,
       errorPayload?.stage ? `stage: ${errorPayload.stage}` : undefined,
@@ -149,7 +151,9 @@ export async function completeOnboarding(payload: CompleteOnboardingPayload) {
       .filter(Boolean)
       .join(" | ");
 
-    const message = [mapped, errorPayload?.message, issues, debug].filter(Boolean).join(" - ") || fallbackMessage;
+    const primaryMessage = mapped ?? errorPayload?.message ?? fallbackMessage;
+    const devDetails = isDev ? [issues, debug].filter(Boolean).join(" - ") : "";
+    const message = [primaryMessage, devDetails].filter(Boolean).join(" - ");
     throw new Error(message);
   }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -89,7 +90,22 @@ export async function requireAppUser(allowedRoles?: AppRole[]): Promise<RequireA
         subscription: appUser.subscription,
       },
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2023") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            success: false,
+            code: "DATA_MIGRATION_REQUIRED",
+            message:
+              "Encontramos um dado legado de plano. Rode a migracao PRIMUM -> PREMIUM no banco e tente novamente.",
+          },
+          { status: 503 }
+        ),
+      };
+    }
+
     return {
       ok: false,
       response: NextResponse.json(

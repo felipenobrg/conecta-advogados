@@ -86,6 +86,33 @@ function normalizeOabNumber(value: string) {
     return value.replace(/\D/g, "").slice(0, 12);
 }
 
+function hasAtLeastTwoWords(value: string) {
+    return value
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length >= 2;
+}
+
+function isValidHttpUrl(value: string) {
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
+function getFriendlyStatusMessageFromError(message: string) {
+    const trimmed = message.trim();
+    if (!trimmed) return "Nao foi possivel concluir esta etapa. Tente novamente.";
+
+    if (/failed to fetch|networkerror|network error|load failed/i.test(trimmed)) {
+        return "Falha de conexao com o servidor. Verifique sua internet e tente novamente.";
+    }
+
+    return trimmed.split(" - trace:")[0].trim();
+}
+
 function toGenderLabel(gender?: Gender) {
     if (gender === "F") return "Feminino";
     if (gender === "M") return "Masculino";
@@ -210,6 +237,9 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
             if (isLawyer) {
                 if (lawyerStep3Substep === 0) {
                     if (!data.fullName?.trim()) errors.fullName = "Informe seu nome completo.";
+                    else if (!hasAtLeastTwoWords(data.fullName)) errors.fullName = "Informe nome e sobrenome.";
+                    else if (data.fullName.trim().length < 6) errors.fullName = "Nome muito curto. Informe seu nome completo.";
+
                     if (!data.email?.trim()) {
                         errors.email = "Informe seu email.";
                     } else if (!emailRegex.test(data.email.trim().toLowerCase())) {
@@ -273,14 +303,29 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
         if (isLawyer && currentStep === 4) {
             if (!data.officeName?.trim()) {
                 errors.officeName = "Nome do escritorio obrigatorio.";
-            } else if (data.officeName.trim().length < 2) {
-                errors.officeName = "Nome do escritorio deve ter ao menos 2 caracteres.";
+            } else if (data.officeName.trim().length < 3) {
+                errors.officeName = "Nome do escritorio deve ter ao menos 3 caracteres.";
+            } else if (data.officeName.trim().length > 120) {
+                errors.officeName = "Nome do escritorio deve ter no maximo 120 caracteres.";
+            }
+
+            if (data.officeLogoUrl?.trim() && !isValidHttpUrl(data.officeLogoUrl.trim())) {
+                errors.officeLogoUrl = "Informe uma URL valida iniciando com http:// ou https://.";
             }
         }
 
         if (isLawyer && currentStep === 5) {
-            if (!data.oabNumber?.trim()) errors.oabNumber = "Numero da OAB obrigatorio.";
-            if (!data.oabState?.trim()) errors.oabState = "Estado da OAB obrigatorio.";
+            if (!data.oabNumber?.trim()) {
+                errors.oabNumber = "Numero da OAB obrigatorio.";
+            } else if (data.oabNumber.trim().length < 4 || data.oabNumber.trim().length > 12) {
+                errors.oabNumber = "Numero da OAB deve ter entre 4 e 12 digitos.";
+            }
+
+            if (!data.oabState?.trim()) {
+                errors.oabState = "Estado da OAB obrigatorio.";
+            } else if (!oabStates.includes(data.oabState)) {
+                errors.oabState = "Estado da OAB invalido.";
+            }
         }
 
         if (isLawyer && currentStep === 6 && !data.selectedPlan) {
@@ -289,6 +334,8 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
 
         if (isLawyer && currentStep === 7 && (!data.practiceAreas || data.practiceAreas.length === 0)) {
             errors.practiceAreas = "Selecione ao menos uma area de atuacao.";
+        } else if (isLawyer && currentStep === 7 && data.practiceAreas.length > 5) {
+            errors.practiceAreas = "Selecione no maximo 5 areas de atuacao.";
         }
 
         if (isClient && currentStep === 4 && !data.clientLegalArea) {
@@ -386,46 +433,19 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
         if (currentStep === 1) return true;
         if (currentStep === 2) return Boolean(data.role);
 
-        const fullName = data.fullName ?? "";
-        const email = data.email ?? "";
-        const phone = data.phone ?? "";
-        const password = data.password ?? "";
-        const officeName = data.officeName ?? "";
-        const oabNumber = data.oabNumber ?? "";
-        const oabState = data.oabState ?? "";
-        const practiceAreas = data.practiceAreas ?? [];
+        if (currentStep === 3) return Object.keys(collectCurrentStepErrors()).length === 0;
 
-        if (currentStep === 3) {
-            if (isLawyer) {
-                return Object.keys(collectCurrentStepErrors()).length === 0;
-            }
-
-            return (
-                Boolean(fullName.trim()) &&
-                Boolean(email.trim()) &&
-                Boolean(phone.trim()) &&
-                strongPasswordRegex.test(password) &&
-                Boolean(data.age) &&
-                Boolean(data.gender) &&
-                Boolean(data.consentAccepted)
-            );
+        if (isLawyer && currentStep >= 4 && currentStep <= 7) {
+            return Object.keys(collectCurrentStepErrors()).length === 0;
         }
 
         if (isClient) {
-            if (currentStep === 4) return Boolean(data.clientLegalArea);
+            if (currentStep === 4) return Object.keys(collectCurrentStepErrors()).length === 0;
             if (currentStep === 5) return true;
             if (currentStep === 6) return true;
             return false;
         }
 
-        if (currentStep === 4) return Boolean(officeName.trim());
-
-        if (currentStep === 5) {
-            return Boolean(oabNumber.trim()) && Boolean(oabState.trim()) && Boolean(data.age) && Boolean(data.gender);
-        }
-
-        if (currentStep === 6) return Boolean(data.selectedPlan);
-        if (currentStep === 7) return practiceAreas.length > 0;
         if (currentStep === 8) return true;
 
         return false;
@@ -510,6 +530,16 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
 
     function togglePracticeArea(area: string) {
         const hasArea = data.practiceAreas.includes(area);
+
+        if (!hasArea && data.practiceAreas.length >= 5) {
+            setFieldErrors((current) => ({
+                ...current,
+                practiceAreas: "Selecione no maximo 5 areas de atuacao.",
+            }));
+            setStatusMessage("Voce pode selecionar ate 5 areas de atuacao.");
+            return;
+        }
+
         patchData({
             practiceAreas: hasArea
                 ? data.practiceAreas.filter((item) => item !== area)
@@ -552,6 +582,8 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
     }
 
     async function finishOnboarding() {
+        setStatusMessage("Validando seus dados e criando sua conta...");
+
         const response = await completeOnboarding({
             sessionId,
             fullName: data.fullName,
@@ -582,12 +614,12 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
             if (!response.checkoutUrl) {
                 throw new Error("Nao foi possivel iniciar o checkout Stripe.");
             }
-            setStatusMessage("Conta criada! Assinatura pendente de ativacao. Redirecionando...");
+            setStatusMessage("Conta criada com sucesso! Vamos abrir o checkout para ativar sua assinatura.");
             window.location.assign(response.checkoutUrl);
             return;
         }
 
-        setStatusMessage("Conta criada! Redirecionando...");
+        setStatusMessage("Conta criada com sucesso! Redirecionando para o dashboard...");
         setStep(isLawyer ? 9 : 7);
     }
 
@@ -664,7 +696,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
             }
         } catch (error) {
             const message = error instanceof Error ? error.message : "Erro ao salvar etapa.";
-            setStatusMessage(message);
+            setStatusMessage(getFriendlyStatusMessageFromError(message));
         } finally {
             continueLockRef.current = false;
             setSubmitting(false);
@@ -765,6 +797,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                         placeholder="Ex: Maria Oliveira Santos"
                                         aria-label="Nome completo"
                                         value={data.fullName}
+                                        maxLength={120}
                                         onChange={(event) => {
                                             patchData({ fullName: event.target.value });
                                             clearFieldError("fullName");
@@ -811,6 +844,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                         placeholder="Crie uma senha forte"
                                         type="password"
                                         aria-label="Senha"
+                                        minLength={8}
                                         value={data.password}
                                         onChange={(event) => {
                                             patchData({ password: event.target.value });
@@ -836,8 +870,10 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                             placeholder="Codigo de 4 digitos"
                                             aria-label="Codigo OTP"
                                             value={data.otpCode}
+                                            inputMode="numeric"
+                                            maxLength={6}
                                             onChange={(event) => {
-                                                patchData({ otpCode: event.target.value });
+                                                patchData({ otpCode: event.target.value.replace(/\D/g, "").slice(0, 6) });
                                                 clearFieldError("otpCode");
                                             }}
                                             className={getFieldClass(Boolean(fieldErrors.otpCode))}
@@ -942,6 +978,7 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                 placeholder="Ex: Oliveira & Associados"
                                 aria-label="Nome do escritorio"
                                 value={data.officeName}
+                                maxLength={120}
                                 onChange={(event) => {
                                     patchData({ officeName: event.target.value });
                                     clearFieldError("officeName");
@@ -951,12 +988,18 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                             {fieldErrors.officeName && <p className="text-xs text-rose-300">{fieldErrors.officeName}</p>}
                             <input
                                 placeholder="https://seusite.com/logo.png (opcional)"
+                                type="url"
                                 aria-label="URL da logo do escritorio"
                                 value={data.officeLogoUrl}
-                                onChange={(event) => patchData({ officeLogoUrl: event.target.value })}
+                                maxLength={255}
+                                onChange={(event) => {
+                                    patchData({ officeLogoUrl: event.target.value });
+                                    clearFieldError("officeLogoUrl");
+                                }}
                                 className={getFieldClass(Boolean(fieldErrors.officeLogoUrl))}
                             />
                             <p className="text-[11px] text-[#a89bc2]">Aceita links publicos de imagem (PNG ou JPG).</p>
+                            {fieldErrors.officeLogoUrl && <p className="text-xs text-rose-300">{fieldErrors.officeLogoUrl}</p>}
                             <button
                                 type="button"
                                 className={primaryButtonClass}
@@ -1003,6 +1046,8 @@ export function OnboardingChat({ initialRole, initialEntry }: OnboardingChatProp
                                 placeholder="Ex: 123456"
                                 aria-label="Numero da OAB"
                                 value={data.oabNumber}
+                                inputMode="numeric"
+                                maxLength={12}
                                 onChange={(event) => {
                                     patchData({ oabNumber: normalizeOabNumber(event.target.value) });
                                     clearFieldError("oabNumber");

@@ -46,7 +46,7 @@ export default function Home() {
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <Link
-                    href="/onboarding?role=CLIENT"
+                    href="/leads/inscricao"
                     className="inline-flex h-12 items-center justify-center rounded-full bg-[#ff4029] text-sm font-black uppercase tracking-wide text-white transition hover:bg-[#e13822]"
                   >
                     Quero um advogado

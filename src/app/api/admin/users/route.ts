@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 
@@ -34,55 +35,78 @@ export async function GET(request: Request) {
       }
     : undefined;
 
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        plan: true,
-        whatsappVerified: true,
-        createdAt: true,
-        subscription: {
-          select: {
-            status: true,
-            plan: true,
-            provider: true,
-            createdAt: true,
+  try {
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+          plan: true,
+          whatsappVerified: true,
+          createdAt: true,
+          subscription: {
+            select: {
+              status: true,
+              plan: true,
+              provider: true,
+              createdAt: true,
+            },
+          },
+          _count: {
+            select: {
+              leads: true,
+            },
           },
         },
-        _count: {
-          select: {
-            leads: true,
-          },
-        },
-      },
-    }),
-    prisma.user.count({ where }),
-  ]);
+      }),
+      prisma.user.count({ where }),
+    ]);
 
-  return NextResponse.json({
-    success: true,
-    admin: auth.adminUser,
-    total,
-    users: users.map((user: (typeof users)[number]) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      plan: user.plan,
-      subscriptionPlan: user.subscription?.plan ?? null,
-      subscriptionStatus: user.subscription?.status ?? null,
-      subscriptionProvider: user.subscription?.provider ?? null,
-      whatsappVerified: user.whatsappVerified,
-      unlockCount: user._count.leads,
-      createdAt: user.createdAt,
-    })),
-  });
+    return NextResponse.json({
+      success: true,
+      admin: auth.adminUser,
+      total,
+      users: users.map((user: (typeof users)[number]) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        plan: user.plan,
+        subscriptionPlan: user.subscription?.plan ?? null,
+        subscriptionStatus: user.subscription?.status ?? null,
+        subscriptionProvider: user.subscription?.provider ?? null,
+        whatsappVerified: user.whatsappVerified,
+        unlockCount: user._count.leads,
+        createdAt: user.createdAt,
+      })),
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2023") {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "DATA_MIGRATION_REQUIRED",
+          message:
+            "Foi detectado dado legado de plano. Execute a migracao PRIMUM -> PREMIUM no banco.",
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        code: "ADMIN_USERS_LOAD_FAILED",
+        message: "Nao foi possivel carregar usuarios agora.",
+      },
+      { status: 500 }
+    );
+  }
 }

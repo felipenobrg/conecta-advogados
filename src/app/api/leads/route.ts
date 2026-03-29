@@ -141,7 +141,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireAppUser(["CLIENT", "ADMIN"]);
+    const auth = await requireAppUser(["ADMIN"]);
     if (!auth.ok) {
       return auth.response;
     }
@@ -157,7 +157,7 @@ export async function POST(request: Request) {
         area: payload.area,
         state: payload.state.toUpperCase(),
         whatsappVerified: payload.whatsappVerified ?? false,
-        clientId: auth.user.role === "CLIENT" ? auth.user.id : null,
+        clientId: null,
         statusUpdatedBy: auth.user.role,
         statusUpdatedAt: new Date(),
       },

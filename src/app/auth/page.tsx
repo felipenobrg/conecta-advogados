@@ -23,7 +23,7 @@ function normalizeRole(role: unknown): AppRole {
 function redirectPathForRole(role: AppRole) {
     if (role === "ADMIN") return "/admin";
     if (role === "LAWYER") return "/dashboard";
-    return "/client/dashboard";
+    return "/leads/inscricao";
 }
 
 function setRoleCookie(role: AppRole) {
@@ -41,11 +41,18 @@ function AuthPageContent() {
     const [isMagicLoading, setIsMagicLoading] = useState(false);
 
     const requestedRole = normalizeRole(searchParams.get("role"));
+    const nextPath = searchParams.get("next");
     const requestedRoleLabel = requestedRole === "LAWYER" ? "advogado" : requestedRole === "ADMIN" ? "administrador" : "cliente";
     const displayMessage = message;
 
     function applyRoleAndRedirect(role: AppRole) {
         setRoleCookie(role);
+
+        if (nextPath && nextPath.startsWith("/")) {
+            router.push(nextPath);
+            return;
+        }
+
         router.push(redirectPathForRole(role));
     }
 
@@ -118,11 +125,15 @@ function AuthPageContent() {
             return;
         }
 
-        const emailRedirectTo = `${window.location.origin}/auth/callback`;
+        const emailRedirectUrl = new URL("/auth/callback", window.location.origin);
+        if (nextPath && nextPath.startsWith("/")) {
+            emailRedirectUrl.searchParams.set("next", nextPath);
+        }
+
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
-                emailRedirectTo,
+                emailRedirectTo: emailRedirectUrl.toString(),
                 shouldCreateUser: true,
             },
         });
@@ -195,8 +206,11 @@ function AuthPageContent() {
                 {displayMessage && <p className="mt-3 text-xs text-zinc-200">{displayMessage}</p>}
 
                 <div className="mt-5 space-y-2 text-xs text-zinc-300">
-                    <Link href="/onboarding" className="block font-semibold text-zinc-100 hover:text-white">
-                        Nao tenho conta: cadastrar pelo onboarding
+                    <Link href="/onboarding?role=LAWYER" className="block font-semibold text-zinc-100 hover:text-white">
+                        Nao tenho conta: cadastrar como advogado
+                    </Link>
+                    <Link href="/leads/inscricao" className="block font-semibold text-zinc-100 hover:text-white">
+                        Quero apenas enviar meu caso (sem conta)
                     </Link>
                     <Link href="/" className="block font-semibold text-zinc-100 hover:text-white">
                         Voltar para a landing
