@@ -110,6 +110,14 @@ function getOrderBy(sortBy: AllowedSortBy, sortDir: AllowedSortDir) {
   return [{ [sortBy]: sortDir }, { createdAt: "desc" as const }];
 }
 
+async function getLeadColumnSet() {
+  const rows = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(
+    "select column_name from information_schema.columns where table_schema='public' and table_name='Lead'"
+  );
+
+  return new Set(rows.map((row) => row.column_name));
+}
+
 export async function GET(request: Request) {
   try {
     const auth = await requireAppUser(["LAWYER", "ADMIN", "CLIENT"]);
@@ -140,6 +148,19 @@ export async function GET(request: Request) {
       ? Math.min(50, Math.max(5, Math.floor(pageSizeRaw)))
       : 10;
 
+    const leadColumns = await getLeadColumnSet();
+    const hasCity = leadColumns.has("city");
+    const hasNeighborhood = leadColumns.has("neighborhood");
+    const hasUrgency = leadColumns.has("urgency");
+    const hasGender = leadColumns.has("gender");
+
+    const effectiveSortBy =
+      (sortBy === "city" && !hasCity) || (sortBy === "urgency" && !hasUrgency)
+        ? "createdAt"
+        : sortBy;
+
+    const orderBy = getOrderBy(effectiveSortBy, sortDir);
+
     const baseWhere = {
       ...(area
         ? {
@@ -157,7 +178,7 @@ export async function GET(request: Request) {
             },
           }
         : {}),
-      ...(city
+      ...(hasCity && city
         ? {
             city: {
               contains: city,
@@ -165,7 +186,7 @@ export async function GET(request: Request) {
             },
           }
         : {}),
-      ...(neighborhood
+      ...(hasNeighborhood && neighborhood
         ? {
             neighborhood: {
               contains: neighborhood,
@@ -174,7 +195,7 @@ export async function GET(request: Request) {
           }
         : {}),
       ...(status ? { status } : {}),
-      ...(urgency ? { urgency } : {}),
+      ...(hasUrgency && urgency ? { urgency } : {}),
       ...(search
         ? {
             OR: [
@@ -202,18 +223,26 @@ export async function GET(request: Request) {
                   mode: "insensitive" as const,
                 },
               },
-              {
-                city: {
-                  contains: search,
-                  mode: "insensitive" as const,
-                },
-              },
-              {
-                neighborhood: {
-                  contains: search,
-                  mode: "insensitive" as const,
-                },
-              },
+              ...(hasCity
+                ? [
+                    {
+                      city: {
+                        contains: search,
+                        mode: "insensitive" as const,
+                      },
+                    },
+                  ]
+                : []),
+              ...(hasNeighborhood
+                ? [
+                    {
+                      neighborhood: {
+                        contains: search,
+                        mode: "insensitive" as const,
+                      },
+                    },
+                  ]
+                : []),
             ],
           }
         : {}),
@@ -235,7 +264,7 @@ export async function GET(request: Request) {
       : Number.POSITIVE_INFINITY;
     const leadOfficeCap = getLeadOfficeCap();
 
-    const [userUnlockCount, total, groupedByStatus, leads] = await Promise.all([
+    const [userUnlockCount, total, pendingCount, contactedCount, convertedCount, lostCount, leads] = await Promise.all([
       isLawyer
         ? prisma.leadUnlock.count({
             where: {
@@ -244,16 +273,13 @@ export async function GET(request: Request) {
           })
         : Promise.resolve(0),
       prisma.lead.count({ where }),
-      prisma.lead.groupBy({
-        by: ["status"],
-        where,
-        _count: {
-          _all: true,
-        },
-      }),
+      prisma.lead.count({ where: { ...where, status: "PENDING" } }),
+      prisma.lead.count({ where: { ...where, status: "CONTACTED" } }),
+      prisma.lead.count({ where: { ...where, status: "CONVERTED" } }),
+      prisma.lead.count({ where: { ...where, status: "LOST" } }),
       prisma.lead.findMany({
         where,
-        orderBy: getOrderBy(sortBy, sortDir),
+        orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
         select: {
@@ -264,10 +290,10 @@ export async function GET(request: Request) {
           phone: true,
           area: true,
           state: true,
-          city: true,
-          neighborhood: true,
-          urgency: true,
-          gender: true,
+          ...(hasCity ? { city: true } : {}),
+          ...(hasNeighborhood ? { neighborhood: true } : {}),
+          ...(hasUrgency ? { urgency: true } : {}),
+          ...(hasGender ? { gender: true } : {}),
           updatedAt: true,
           status: true,
           createdAt: true,
@@ -288,19 +314,6 @@ export async function GET(request: Request) {
         },
       }),
     ]);
-
-    const groupedStatusCount = groupedByStatus.reduce(
-      (acc, item: (typeof groupedByStatus)[number]) => {
-        acc[item.status] = item._count._all;
-        return acc;
-      },
-      {
-        PENDING: 0,
-        CONTACTED: 0,
-        CONVERTED: 0,
-        LOST: 0,
-      }
-    );
 
     const remainingUnlocks = Number.isFinite(userUnlockQuota)
       ? Math.max(0, userUnlockQuota - userUnlockCount)
@@ -327,10 +340,10 @@ export async function GET(request: Request) {
         },
       },
       summary: {
-        pending: groupedStatusCount.PENDING,
-        contacted: groupedStatusCount.CONTACTED,
-        converted: groupedStatusCount.CONVERTED,
-        lost: groupedStatusCount.LOST,
+        pending: pendingCount,
+        contacted: contactedCount,
+        converted: convertedCount,
+        lost: lostCount,
       },
       leads: leads.map((lead: (typeof leads)[number]) => ({
         isUnlocked:
@@ -351,10 +364,14 @@ export async function GET(request: Request) {
         maskedPhone: maskPhone(lead.phone),
         area: lead.area,
         state: lead.state,
-        city: lead.city,
-        neighborhood: lead.neighborhood,
-        urgency: lead.urgency,
-        gender: lead.gender,
+        city: hasCity ? ((lead as { city?: string | null }).city ?? null) : null,
+        neighborhood: hasNeighborhood
+          ? ((lead as { neighborhood?: string | null }).neighborhood ?? null)
+          : null,
+        urgency: hasUrgency
+          ? (((lead as { urgency?: string | null }).urgency ?? "MEDIUM") as AllowedUrgency)
+          : ("MEDIUM" as AllowedUrgency),
+        gender: hasGender ? ((lead as { gender?: string | null }).gender ?? null) : null,
         status: lead.status,
         isOwner: lead.clientId === auth.user.id,
         unlockCount: lead._count.unlocks,
@@ -375,7 +392,8 @@ export async function GET(request: Request) {
         updatedAt: lead.updatedAt,
       })),
     });
-  } catch {
+  } catch (error) {
+    console.error("[GET /api/leads] failed", error);
     return NextResponse.json(
       { success: false, message: "Não foi possível carregar leads." },
       { status: 500 }

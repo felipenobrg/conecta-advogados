@@ -39,6 +39,44 @@ function getLeadOfficeCap() {
   return Number.isFinite(cap) ? Math.max(1, Math.floor(cap)) : defaultCap;
 }
 
+function mapPrismaError(error: Prisma.PrismaClientKnownRequestError) {
+  if (error.code === "P2022") {
+    return NextResponse.json(
+      {
+        success: false,
+        code: "SCHEMA_MISMATCH",
+        message:
+          "Seu banco está com schema desatualizado para este recurso de desbloqueio. Rode as migrations e tente novamente.",
+      },
+      { status: 503 }
+    );
+  }
+
+  if (error.code === "P2023") {
+    return NextResponse.json(
+      {
+        success: false,
+        code: "DATA_MIGRATION_REQUIRED",
+        message: "Encontramos dados legados incompatíveis. Execute a migração de dados e tente novamente.",
+      },
+      { status: 503 }
+    );
+  }
+
+  if (error.code === "P2003") {
+    return NextResponse.json(
+      {
+        success: false,
+        code: "RELATION_CONSTRAINT",
+        message: "Não foi possível desbloquear por referência inválida de usuário ou lead.",
+      },
+      { status: 409 }
+    );
+  }
+
+  return null;
+}
+
 export async function POST(request: Request) {
   try {
     const auth = await requireAppUser(["LAWYER", "ADMIN"]);
@@ -60,12 +98,9 @@ export async function POST(request: Request) {
 
     const lead = await prisma.lead.findUnique({
       where: { id: leadId },
-      include: {
-        unlocks: {
-          orderBy: {
-            unlockedAt: "desc",
-          },
-        },
+      select: {
+        id: true,
+        status: true,
       },
     });
 
@@ -73,7 +108,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Lead não encontrado." }, { status: 404 });
     }
 
-    const alreadyUnlocked = lead.unlocks.some((unlock) => unlock.userId === auth.user.id);
+    const [existingUserUnlock, unlockCount, userUnlockCount, lastUnlock] = await Promise.all([
+      prisma.leadUnlock.findFirst({
+        where: {
+          leadId,
+          userId: auth.user.id,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.leadUnlock.count({
+        where: {
+          leadId,
+        },
+      }),
+      prisma.leadUnlock.count({
+        where: {
+          userId: auth.user.id,
+        },
+      }),
+      prisma.leadUnlock.findFirst({
+        where: {
+          leadId,
+        },
+        orderBy: {
+          unlockedAt: "desc",
+        },
+        select: {
+          unlockedAt: true,
+        },
+      }),
+    ]);
+
+    const alreadyUnlocked = Boolean(existingUserUnlock);
     if (alreadyUnlocked) {
       return NextResponse.json(
         {
@@ -86,13 +154,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const unlockCount = lead.unlocks.length;
-    const userUnlockCount = await prisma.leadUnlock.count({
-      where: {
-        userId: auth.user.id,
-      },
-    });
-    const lastUnlock = lead.unlocks[0];
     const lastUnlockAt = lastUnlock ? new Date(lastUnlock.unlockedAt).getTime() : null;
     const canReopenAfter48h =
       lead.status === "PENDING" &&
@@ -145,16 +206,23 @@ export async function POST(request: Request) {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        return NextResponse.json(
-          {
-            success: true,
-            alreadyUnlocked: true,
-            eligible: false,
-            reason: "Lead já desbloqueado por este escritório.",
-          },
-          { status: 200 }
-        );
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002") {
+          return NextResponse.json(
+            {
+              success: true,
+              alreadyUnlocked: true,
+              eligible: false,
+              reason: "Lead já desbloqueado por este escritório.",
+            },
+            { status: 200 }
+          );
+        }
+
+        const mapped = mapPrismaError(error);
+        if (mapped) {
+          return mapped;
+        }
       }
 
       throw error;
@@ -181,6 +249,22 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        { success: false, message: "JSON inválido no corpo da requisição de desbloqueio." },
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      const mapped = mapPrismaError(error);
+      if (mapped) {
+        return mapped;
+      }
+    }
+
+    console.error("[POST /api/leads/unlock] failed", error);
 
     return NextResponse.json(
       { success: false, message: "Não foi possível processar desbloqueio do lead." },

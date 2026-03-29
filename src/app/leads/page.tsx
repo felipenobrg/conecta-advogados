@@ -799,8 +799,8 @@ export default function LeadsPage() {
                     {actionMessage && (
                         <p
                             className={`mt-3 rounded-xl border px-3 py-2 text-sm ${actionError
-                                    ? "border-rose-300/30 bg-rose-400/10 text-rose-200"
-                                    : "border-emerald-300/30 bg-emerald-400/10 text-emerald-200"
+                                ? "border-rose-300/30 bg-rose-400/10 text-rose-200"
+                                : "border-emerald-300/30 bg-emerald-400/10 text-emerald-200"
                                 }`}
                         >
                             {actionMessage}
@@ -926,138 +926,138 @@ export default function LeadsPage() {
 
                             <div className="mt-3 hidden overflow-x-auto md:block">
                                 <table className="w-full min-w-330 text-left text-sm">
-                                <thead>
-                                    <tr className="border-b border-white/15 text-[#a89bc2]">
-                                        <th className="pb-2">Lead</th>
-                                        <th className="pb-2">Localidade</th>
-                                        <th className="pb-2">Urgência</th>
-                                        <th className="pb-2">Contato</th>
-                                        <th className="pb-2">Status</th>
-                                        <th className="pb-2">Desbloqueios</th>
-                                        <th className="pb-2">Data</th>
-                                        <th className="pb-2">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(payload?.leads ?? []).map((lead) => {
-                                        const canManageStatus = lead.isUnlocked || payload?.access.role === "ADMIN";
-                                        const canShowContact = lead.isUnlocked || payload?.access.role === "ADMIN" || lead.isOwner;
+                                    <thead>
+                                        <tr className="border-b border-white/15 text-[#a89bc2]">
+                                            <th className="pb-2">Lead</th>
+                                            <th className="pb-2">Localidade</th>
+                                            <th className="pb-2">Urgência</th>
+                                            <th className="pb-2">Contato</th>
+                                            <th className="pb-2">Status</th>
+                                            <th className="pb-2">Desbloqueios</th>
+                                            <th className="pb-2">Data</th>
+                                            <th className="pb-2">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(payload?.leads ?? []).map((lead) => {
+                                            const canManageStatus = lead.isUnlocked || payload?.access.role === "ADMIN";
+                                            const canShowContact = lead.isUnlocked || payload?.access.role === "ADMIN" || lead.isOwner;
 
-                                        return (
-                                            <tr key={lead.id} className="border-b border-white/10 align-top text-zinc-100 hover:bg-white/3">
-                                                <td className="py-3">
-                                                    <p className="font-semibold text-white">{lead.name}</p>
-                                                    <p className="text-xs text-[#a89bc2]">{lead.area}</p>
-                                                </td>
-                                                <td className="py-3">
-                                                    <p>{lead.city ?? "-"}</p>
-                                                    <p className="text-xs text-[#a89bc2]">{lead.neighborhood ? `${lead.neighborhood} · ` : ""}{lead.state}</p>
-                                                </td>
-                                                <td className="py-3">
-                                                    <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${urgencyBadgeClass(lead.urgency)}`}>
-                                                        {urgencyLabel(lead.urgency)}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3">
-                                                    {canShowContact ? (
-                                                        <>
-                                                            <p className="text-sm text-white">{lead.email ?? "-"}</p>
-                                                            <p className="text-xs text-[#a89bc2]">{lead.phone ?? "-"}</p>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <p className="text-sm text-[#a89bc2]">{lead.maskedEmail}</p>
-                                                            <p className="text-xs text-[#a89bc2]">{lead.maskedPhone}</p>
-                                                        </>
-                                                    )}
-                                                </td>
-                                                <td className="py-3">
-                                                    {canManageStatus ? (
-                                                        <select
-                                                            value={draftStatus[lead.id] ?? lead.status}
-                                                            onChange={(event) =>
-                                                                setDraftStatus((current) => ({
-                                                                    ...current,
-                                                                    [lead.id]: event.target.value as LeadStatus,
-                                                                }))
-                                                            }
-                                                            className="h-9 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-xs font-semibold text-white outline-none focus:border-[#e8472a]"
-                                                        >
-                                                            {statusOptions
-                                                                .filter((option) => option.value)
-                                                                .map((option) => (
-                                                                    <option key={option.value} value={option.value}>
-                                                                        {option.label}
-                                                                    </option>
-                                                                ))}
-                                                        </select>
-                                                    ) : (
-                                                        <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusBadgeClass(lead.status)}`}>
-                                                            {statusLabel(lead.status)}
+                                            return (
+                                                <tr key={lead.id} className="border-b border-white/10 align-top text-zinc-100 hover:bg-white/3">
+                                                    <td className="py-3">
+                                                        <p className="font-semibold text-white">{lead.name}</p>
+                                                        <p className="text-xs text-[#a89bc2]">{lead.area}</p>
+                                                    </td>
+                                                    <td className="py-3">
+                                                        <p>{lead.city ?? "-"}</p>
+                                                        <p className="text-xs text-[#a89bc2]">{lead.neighborhood ? `${lead.neighborhood} · ` : ""}{lead.state}</p>
+                                                    </td>
+                                                    <td className="py-3">
+                                                        <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${urgencyBadgeClass(lead.urgency)}`}>
+                                                            {urgencyLabel(lead.urgency)}
                                                         </span>
-                                                    )}
-                                                </td>
-                                                <td className="py-3">
-                                                    <p>{lead.unlockCount}</p>
-                                                    <p className="text-xs text-[#a89bc2]">cap {payload?.access.leadOfficeCap ?? 0}</p>
-                                                </td>
-                                                <td className="py-3 text-[#a89bc2]">{formatDate(lead.createdAt)}</td>
-                                                <td className="py-3">
-                                                    <div className="flex max-w-60 flex-col gap-2">
-                                                        {isLawyer && !lead.isUnlocked && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => void handleUnlock(lead.id)}
-                                                                disabled={!lead.canUnlock || unlockingLeadId === lead.id}
-                                                                className="h-9 rounded-full bg-[#e8472a] px-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#c73d22] disabled:cursor-not-allowed disabled:opacity-50"
+                                                    </td>
+                                                    <td className="py-3">
+                                                        {canShowContact ? (
+                                                            <>
+                                                                <p className="text-sm text-white">{lead.email ?? "-"}</p>
+                                                                <p className="text-xs text-[#a89bc2]">{lead.phone ?? "-"}</p>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <p className="text-sm text-[#a89bc2]">{lead.maskedEmail}</p>
+                                                                <p className="text-xs text-[#a89bc2]">{lead.maskedPhone}</p>
+                                                            </>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3">
+                                                        {canManageStatus ? (
+                                                            <select
+                                                                value={draftStatus[lead.id] ?? lead.status}
+                                                                onChange={(event) =>
+                                                                    setDraftStatus((current) => ({
+                                                                        ...current,
+                                                                        [lead.id]: event.target.value as LeadStatus,
+                                                                    }))
+                                                                }
+                                                                className="h-9 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-xs font-semibold text-white outline-none focus:border-[#e8472a]"
                                                             >
-                                                                {unlockingLeadId === lead.id ? "Desbloqueando..." : "Desbloquear"}
-                                                            </button>
+                                                                {statusOptions
+                                                                    .filter((option) => option.value)
+                                                                    .map((option) => (
+                                                                        <option key={option.value} value={option.value}>
+                                                                            {option.label}
+                                                                        </option>
+                                                                    ))}
+                                                            </select>
+                                                        ) : (
+                                                            <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusBadgeClass(lead.status)}`}>
+                                                                {statusLabel(lead.status)}
+                                                            </span>
                                                         )}
+                                                    </td>
+                                                    <td className="py-3">
+                                                        <p>{lead.unlockCount}</p>
+                                                        <p className="text-xs text-[#a89bc2]">cap {payload?.access.leadOfficeCap ?? 0}</p>
+                                                    </td>
+                                                    <td className="py-3 text-[#a89bc2]">{formatDate(lead.createdAt)}</td>
+                                                    <td className="py-3">
+                                                        <div className="flex max-w-60 flex-col gap-2">
+                                                            {isLawyer && !lead.isUnlocked && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => void handleUnlock(lead.id)}
+                                                                    disabled={!lead.canUnlock || unlockingLeadId === lead.id}
+                                                                    className="h-9 rounded-full bg-[#e8472a] px-3 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#c73d22] disabled:cursor-not-allowed disabled:opacity-50"
+                                                                >
+                                                                    {unlockingLeadId === lead.id ? "Desbloqueando..." : "Desbloquear"}
+                                                                </button>
+                                                            )}
 
-                                                        {canManageStatus && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => void handleSaveStatus(lead.id)}
-                                                                disabled={savingLeadId === lead.id}
-                                                                className="h-9 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-xs font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e] disabled:opacity-60"
-                                                            >
-                                                                {savingLeadId === lead.id ? "Salvando..." : "Salvar status"}
-                                                            </button>
-                                                        )}
+                                                            {canManageStatus && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => void handleSaveStatus(lead.id)}
+                                                                    disabled={savingLeadId === lead.id}
+                                                                    className="h-9 rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-xs font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e] disabled:opacity-60"
+                                                                >
+                                                                    {savingLeadId === lead.id ? "Salvando..." : "Salvar status"}
+                                                                </button>
+                                                            )}
 
-                                                        {canShowContact && (
-                                                            <div className="flex gap-2">
-                                                                {lead.phone && (
-                                                                    <a
-                                                                        href={`https://wa.me/55${phoneDigits(lead.phone)}`}
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                        className="inline-flex h-8 items-center rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-[11px] font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e]"
-                                                                    >
-                                                                        WhatsApp
-                                                                    </a>
-                                                                )}
-                                                                {lead.email && (
-                                                                    <a
-                                                                        href={`mailto:${lead.email}`}
-                                                                        className="inline-flex h-8 items-center rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-[11px] font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e]"
-                                                                    >
-                                                                        E-mail
-                                                                    </a>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                            {canShowContact && (
+                                                                <div className="flex gap-2">
+                                                                    {lead.phone && (
+                                                                        <a
+                                                                            href={`https://wa.me/55${phoneDigits(lead.phone)}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="inline-flex h-8 items-center rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-[11px] font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e]"
+                                                                        >
+                                                                            WhatsApp
+                                                                        </a>
+                                                                    )}
+                                                                    {lead.email && (
+                                                                        <a
+                                                                            href={`mailto:${lead.email}`}
+                                                                            className="inline-flex h-8 items-center rounded-full border border-[#3d2a5a] bg-[#1a0a2e] px-3 text-[11px] font-semibold text-[#a89bc2] transition hover:bg-[#2d1b4e]"
+                                                                        >
+                                                                            E-mail
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            )}
 
-                                                        {!lead.isUnlocked && lead.lockReason && (
-                                                            <p className="text-[11px] text-amber-200">{lead.lockReason}</p>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
+                                                            {!lead.isUnlocked && lead.lockReason && (
+                                                                <p className="text-[11px] text-amber-200">{lead.lockReason}</p>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
                                 </table>
                             </div>
                         </>
